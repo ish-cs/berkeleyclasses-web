@@ -99,7 +99,7 @@ export default async function ClassPage({
             {(meta?.requirements ?? []).map((r) => (
               <Link
                 key={r}
-                href={`/find?req=${encodeURIComponent(r)}`}
+                href={`/find?reqs=${encodeURIComponent(r)}`}
                 className="rounded-md bg-amber-500/10 border border-amber-500/40 text-amber-200 px-2.5 py-1 text-xs font-medium hover:bg-amber-500/20"
                 title="Satisfies this UC Berkeley general requirement"
               >

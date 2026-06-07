@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import type { TermGroup } from "@/lib/terms";
 
 type Subject = { subject_id: string; name: string };
@@ -18,7 +18,7 @@ type CurrentFilters = {
   days: string[];
   units: string;
   instructor: string;
-  req: string;
+  reqs: string[];
   sort: string;
 };
 
@@ -95,12 +95,16 @@ export default function FilterSidebar({
     });
   }
 
-  function toggleMulti(key: string, value: string, current: string[]) {
-    const next = current.includes(value) ? current.filter((v) => v !== value) : [...current, value];
+  function toggleMulti(key: string, value: string, currentArr: string[]) {
+    const next = currentArr.includes(value) ? currentArr.filter((v) => v !== value) : [...currentArr, value];
     pushParam((p) => {
       if (next.length === 0) p.delete(key);
       else p.set(key, next.join(","));
     });
+  }
+
+  function clearMulti(key: string) {
+    pushParam((p) => p.delete(key));
   }
 
   function resetAll() {
@@ -142,7 +146,11 @@ export default function FilterSidebar({
         </button>
       </div>
 
-      <div className={`p-4 space-y-5 ${open ? "" : "hidden lg:block"}`}>
+      <div
+        className={`p-4 space-y-5 lg:max-h-[calc(100vh-9rem)] lg:overflow-y-auto ${
+          open ? "" : "hidden lg:block"
+        }`}
+      >
         <FilterBlock label="Search">
           <input
             type="text"
@@ -227,20 +235,13 @@ export default function FilterSidebar({
 
         {reqOptions.length > 0 && (
           <FilterBlock label="Requirement">
-            <div className="flex flex-wrap gap-1">
-              <PillButton active={!current.req} onClick={() => setOne("req", "")}>
-                Any
-              </PillButton>
-              {reqOptions.map((r) => (
-                <PillButton
-                  key={r.code}
-                  active={current.req === r.code}
-                  onClick={() => setOne("req", r.code)}
-                >
-                  <span title={r.description}>{r.code}</span>
-                </PillButton>
-              ))}
-            </div>
+            <MultiSelect
+              options={reqOptions.map((o) => ({ value: o.code, label: o.code, hint: o.description }))}
+              selected={current.reqs}
+              onToggle={(v) => toggleMulti("reqs", v, current.reqs)}
+              onClear={() => clearMulti("reqs")}
+              placeholder="Any requirement"
+            />
           </FilterBlock>
         )}
 
@@ -327,7 +328,7 @@ function countActive(c: CurrentFilters): number {
   if (c.openOnly) n++;
   if (c.mode) n++;
   if (c.level) n++;
-  if (c.req) n++;
+  if (c.reqs.length) n++;
   if (c.types.length) n++;
   if (c.days.length) n++;
   if (c.units) n++;
@@ -366,5 +367,118 @@ function PillButton({
     >
       {children}
     </button>
+  );
+}
+
+type MultiSelectOption = { value: string; label: string; hint?: string };
+
+function MultiSelect({
+  options,
+  selected,
+  onToggle,
+  onClear,
+  placeholder,
+}: {
+  options: MultiSelectOption[];
+  selected: string[];
+  onToggle: (value: string) => void;
+  onClear: () => void;
+  placeholder: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function handleDocClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    function handleEsc(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", handleDocClick);
+    document.addEventListener("keydown", handleEsc);
+    return () => {
+      document.removeEventListener("mousedown", handleDocClick);
+      document.removeEventListener("keydown", handleEsc);
+    };
+  }, [open]);
+
+  const label =
+    selected.length === 0
+      ? placeholder
+      : selected.length === 1
+      ? selected[0]
+      : `${selected.length} selected`;
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        className="w-full flex items-center justify-between rounded-md bg-zinc-900 border border-zinc-800 px-3 py-2 text-sm text-left hover:border-zinc-600"
+      >
+        <span className={selected.length === 0 ? "text-zinc-500" : "text-zinc-200 truncate"}>
+          {label}
+        </span>
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className="text-zinc-500 shrink-0 ml-2">
+          <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="absolute left-0 right-0 mt-1 z-20 rounded-md border border-zinc-800 bg-zinc-950 shadow-lg shadow-black/50 max-h-72 overflow-y-auto">
+          <div className="flex items-center justify-between border-b border-zinc-900 px-3 py-2">
+            <span className="text-[11px] uppercase tracking-wider text-zinc-500">
+              {selected.length} selected
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                onClear();
+                setOpen(false);
+              }}
+              className="text-xs text-zinc-500 hover:text-zinc-300"
+            >
+              Clear
+            </button>
+          </div>
+          <ul role="listbox" aria-multiselectable="true">
+            {options.map((o) => {
+              const checked = selected.includes(o.value);
+              return (
+                <li key={o.value}>
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={checked}
+                    onClick={() => onToggle(o.value)}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-zinc-900 text-left"
+                  >
+                    <span
+                      className={
+                        "inline-flex items-center justify-center w-4 h-4 rounded border " +
+                        (checked
+                          ? "bg-white border-white text-black"
+                          : "border-zinc-700 text-transparent")
+                      }
+                      aria-hidden="true"
+                    >
+                      <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                        <path d="M2 5l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </span>
+                    <span className="flex-1 text-zinc-200">{o.label}</span>
+                    {o.hint && <span className="text-[10px] text-zinc-500">{o.hint}</span>}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+    </div>
   );
 }

@@ -19,7 +19,8 @@ type SearchParams = {
   days?: string;          // Mo,We,Fr etc. comma-separated
   units?: string;         // exact match like "4" or "1-3"
   instructor?: string;
-  req?: string;           // requirement designation code (e.g. AC)
+  req?: string;           // legacy single requirement (kept for old shareable links)
+  reqs?: string;          // comma-separated requirement names (OR semantics)
   sort?: string;          // course_code_asc | course_code_desc | open_seats_desc | title_asc
 };
 
@@ -42,7 +43,12 @@ export default async function FindPage({
   const days = (params.days ?? "").split(",").filter(Boolean);
   const units = params.units?.trim() ?? "";
   const instructor = params.instructor?.trim() ?? "";
-  const req = params.req?.trim() ?? "";
+  // `reqs` is the new multi-value param; fall back to legacy `req=` so older
+  // shareable links keep working.
+  const reqs = (params.reqs ?? params.req ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
   const sort = params.sort ?? "course_code_asc";
 
   const supabase = await createClient();
@@ -81,13 +87,14 @@ export default async function FindPage({
     .filter((name) => reqCounts.has(name))
     .map((name) => ({ code: name, description: `${reqCounts.get(name)} courses` }));
 
-  // Resolve req → course_code IN-list via the array-contains operator.
+  // Resolve reqs → course_code IN-list. Multi-select means "any of these
+  // requirements satisfies", so we use overlaps (`&&`).
   let reqCourseCodes: string[] | null = null;
-  if (req) {
+  if (reqs.length > 0) {
     const { data: codes } = await supabase
       .from("course_meta")
       .select("course_code")
-      .contains("requirements", [req]);
+      .overlaps("requirements", reqs);
     reqCourseCodes = (codes ?? []).map((c) => c.course_code as string).filter(Boolean);
     if (reqCourseCodes.length === 0) reqCourseCodes = ["__none__"];
   }
@@ -163,7 +170,7 @@ export default async function FindPage({
               days,
               units,
               instructor,
-              req,
+              reqs,
               sort,
             }}
           />
