@@ -181,7 +181,7 @@ function Field({
   return (
     <div className={colSpan ? "col-span-2" : ""}>
       <dt className="text-zinc-500 text-xs">{label}</dt>
-      <dd className="text-zinc-200">{value || "—"}</dd>
+      <dd className="text-zinc-200">{value === null || value === undefined || value === "" ? "—" : value}</dd>
     </div>
   );
 }

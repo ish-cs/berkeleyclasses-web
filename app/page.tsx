@@ -59,11 +59,11 @@ export default async function Home() {
         />
         <Feature
           title="Cross-department instructor search"
-          body="See every section a professor teaches across all 198 subject areas in one query."
+          body="See every section a professor teaches across every subject area in one query."
         />
         <Feature
-          title="What changed this week"
-          body="See new sections, cancellations, instructor swaps, and enrollment moves since yesterday."
+          title="Grade distributions"
+          body="See the historical GPA average and grade histogram for any course, sourced from Berkeleytime, before you enroll."
         />
         <Feature
           title="Save your schedules"

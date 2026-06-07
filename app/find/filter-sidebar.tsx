@@ -412,7 +412,7 @@ function MultiSelect({
       : `${selected.length} selected`;
 
   return (
-    <div className="relative" ref={ref}>
+    <div ref={ref}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -429,7 +429,7 @@ function MultiSelect({
       </button>
 
       {open && (
-        <div className="absolute left-0 right-0 mt-1 z-20 rounded-md border border-zinc-800 bg-zinc-950 shadow-lg shadow-black/50 max-h-72 overflow-y-auto">
+        <div className="mt-1 rounded-md border border-zinc-800 bg-zinc-950 max-h-64 overflow-y-auto">
           <div className="flex items-center justify-between border-b border-zinc-900 px-3 py-2">
             <span className="text-[11px] uppercase tracking-wider text-zinc-500">
               {selected.length} selected

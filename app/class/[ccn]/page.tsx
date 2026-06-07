@@ -154,10 +154,15 @@ export default async function ClassPage({
           <Stat label="Location" value={s.location} />
           <Stat label="Mode" value={s.instruction_mode} />
           <Stat label="Dates" value={s.meeting_dates} />
-          <Stat
-            label="Enrollment"
-            value={`${s.enrolled} / ${s.capacity}${s.waitlisted ? ` (${s.waitlisted} waitlisted)` : ""}`}
-          />
+          {/* classes.berkeley.edu's search-result cards only surface open seats,
+              not enrolled/capacity counts. Hide this stat unless capacity > 0
+              (i.e. we have richer data from a future detail-page scrape). */}
+          {s.capacity > 0 && (
+            <Stat
+              label="Enrollment"
+              value={`${s.enrolled} / ${s.capacity}${s.waitlisted ? ` (${s.waitlisted} waitlisted)` : ""}`}
+            />
+          )}
         </dl>
 
         <div className="mt-10 grid gap-6 lg:grid-cols-2">
