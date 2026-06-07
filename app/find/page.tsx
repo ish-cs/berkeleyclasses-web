@@ -2,17 +2,27 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import Nav from "@/components/nav";
 import type { Section } from "@/lib/types";
+import FilterSidebar from "./filter-sidebar";
+import SortSelect from "./sort-select";
 
 export const dynamic = "force-dynamic";
 
 type SearchParams = {
   q?: string;
+  term?: string;
   subject?: string;
   open?: string;
-  term?: string;
+  mode?: string;          // in-person | online
+  level?: string;         // lower | upper | grad
+  type?: string;          // LEC | DIS | LAB (comma-separated)
+  days?: string;          // Mo,We,Fr etc. comma-separated
+  units?: string;         // exact match like "4" or "1-3"
+  instructor?: string;
+  sort?: string;          // course_code_asc | course_code_desc | open_seats_desc | title_asc
 };
 
 const DEFAULT_TERM = "Fall 2026";
+const RESULT_LIMIT = 300;
 
 export default async function FindPage({
   searchParams,
@@ -21,143 +31,177 @@ export default async function FindPage({
 }) {
   const params = await searchParams;
   const q = params.q?.trim() ?? "";
+  const termName = params.term?.trim() || DEFAULT_TERM;
   const subject = params.subject?.trim() ?? "";
   const openOnly = params.open === "1";
-  const termName = params.term?.trim() || DEFAULT_TERM;
+  const mode = params.mode?.trim() ?? "";
+  const level = params.level?.trim() ?? "";
+  const types = (params.type ?? "").split(",").filter(Boolean);
+  const days = (params.days ?? "").split(",").filter(Boolean);
+  const units = params.units?.trim() ?? "";
+  const instructor = params.instructor?.trim() ?? "";
+  const sort = params.sort ?? "course_code_asc";
 
   const supabase = await createClient();
 
-  const { data: termRow } = await supabase
-    .from("terms")
-    .select("term_id, name")
-    .ilike("name", termName)
-    .maybeSingle();
-  const termId = termRow?.term_id ?? null;
+  // Parallel: terms, subjects, term lookup
+  const [{ data: terms }, { data: subjects }, { data: termRow }] = await Promise.all([
+    supabase.from("terms").select("term_id, name").order("name"),
+    supabase.from("subjects").select("subject_id, name").order("name"),
+    supabase.from("terms").select("term_id, name").ilike("name", termName).maybeSingle(),
+  ]);
 
-  const { data: subjects } = await supabase
-    .from("subjects")
-    .select("subject_id, name")
-    .order("name");
+  const termId = termRow?.term_id ?? null;
 
   let query = supabase
     .from("sections")
     .select(
-      "ccn, course_code, section_type, section_number, title, instructors, meeting_days, meeting_time, location, open_seats, capacity, subject_name",
+      "ccn, course_code, course_number, section_type, section_number, title, instructors, units, instruction_mode, meeting_days, meeting_time, location, open_seats, capacity, subject_name, description",
     )
-    .order("course_code")
-    .limit(200);
+    .limit(RESULT_LIMIT);
 
   if (termId) query = query.eq("term_id", termId);
   if (subject) query = query.ilike("subject_name", `%${subject}%`);
   if (openOnly) query = query.gt("open_seats", 0);
+  if (mode === "in-person") query = query.ilike("instruction_mode", "%in-person%");
+  if (mode === "online") query = query.ilike("instruction_mode", "%online%");
+  if (level === "lower") query = query.lt("course_number", "100");
+  if (level === "upper") query = query.gte("course_number", "100").lt("course_number", "200");
+  if (level === "grad") query = query.gte("course_number", "200");
+  if (types.length > 0) query = query.in("section_type", types);
+  if (units) query = query.eq("units", units);
+  if (instructor) query = query.ilike("instructors", `%${instructor}%`);
   if (q) {
     const esc = q.replace(/,/g, " ");
     query = query.or(
-      `course_code.ilike.%${esc}%,title.ilike.%${esc}%,instructors.ilike.%${esc}%`,
+      `course_code.ilike.%${esc}%,title.ilike.%${esc}%,instructors.ilike.%${esc}%,description.ilike.%${esc}%`,
     );
   }
 
-  const { data: rows, error } = await query;
-  const sections: Section[] = (rows ?? []) as Section[];
+  const sortMap: Record<string, [string, boolean]> = {
+    course_code_asc: ["course_code", true],
+    course_code_desc: ["course_code", false],
+    open_seats_desc: ["open_seats", false],
+    title_asc: ["title", true],
+  };
+  const [sortCol, sortAsc] = sortMap[sort] ?? sortMap["course_code_asc"];
+  query = query.order(sortCol, { ascending: sortAsc, nullsFirst: false });
+
+  const { data: rowsRaw, error } = await query;
+  let rows: Section[] = (rowsRaw ?? []) as Section[];
+
+  // Client-side day filter (Supabase can't pattern-match arrays cleanly here)
+  if (days.length > 0) {
+    rows = rows.filter((r) => {
+      if (!r.meeting_days) return false;
+      const present = r.meeting_days.toLowerCase();
+      return days.every((d) => present.includes(d.toLowerCase()));
+    });
+  }
 
   return (
     <main className="min-h-screen bg-black text-white">
       <Nav />
-      <section className="mx-auto max-w-6xl px-6 py-10">
-        <h1 className="text-3xl font-semibold mb-6">Search</h1>
-
-        <form className="grid gap-3 md:grid-cols-12 mb-8" method="get">
-          <input
-            type="text"
-            name="q"
-            defaultValue={q}
-            placeholder="Course code, title, or instructor (e.g. CS 61A, DeNero)"
-            className="md:col-span-6 rounded-md bg-zinc-900 border border-zinc-800 px-3 py-2 outline-none focus:border-zinc-500"
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 py-6 grid gap-6 lg:grid-cols-[280px_1fr]">
+        <aside className="lg:sticky lg:top-20 lg:self-start">
+          <FilterSidebar
+            terms={terms ?? []}
+            subjects={subjects ?? []}
+            current={{
+              q,
+              term: termName,
+              subject,
+              openOnly,
+              mode,
+              level,
+              types,
+              days,
+              units,
+              instructor,
+              sort,
+            }}
           />
-          <select
-            name="subject"
-            defaultValue={subject}
-            className="md:col-span-4 rounded-md bg-zinc-900 border border-zinc-800 px-3 py-2 outline-none focus:border-zinc-500"
-          >
-            <option value="">All subjects</option>
-            {subjects?.map((s) => (
-              <option key={s.subject_id} value={s.name}>
-                {s.name}
-              </option>
-            ))}
-          </select>
-          <label className="md:col-span-2 flex items-center gap-2 text-sm text-zinc-400">
-            <input
-              type="checkbox"
-              name="open"
-              value="1"
-              defaultChecked={openOnly}
-              className="accent-white"
-            />
-            Open only
-          </label>
-          <input type="hidden" name="term" value={termName} />
-          <button
-            type="submit"
-            className="md:col-span-2 md:col-start-11 rounded-md bg-white text-black px-4 py-2 font-medium hover:bg-zinc-200"
-          >
-            Search
-          </button>
-        </form>
+        </aside>
 
-        {error && <p className="text-red-400 text-sm mb-4">{error.message}</p>}
+        <section>
+          <div className="flex flex-wrap items-end justify-between gap-3 mb-4">
+            <div>
+              <h1 className="text-2xl font-semibold">Search</h1>
+              <p className="text-sm text-zinc-500">
+                {rows.length === RESULT_LIMIT
+                  ? `Showing first ${RESULT_LIMIT} results — refine to narrow down`
+                  : `${rows.length} result${rows.length === 1 ? "" : "s"}`}{" "}
+                · term {termName}
+              </p>
+            </div>
+            <SortSelect current={sort} />
+          </div>
 
-        <p className="text-sm text-zinc-500 mb-4">
-          {sections.length} result{sections.length === 1 ? "" : "s"} · term: {termName}
-        </p>
+          {error && (
+            <p className="rounded-md border border-red-900 bg-red-950 px-4 py-2 text-sm text-red-300 mb-4">
+              {error.message}
+            </p>
+          )}
 
-        <div className="overflow-x-auto rounded-lg border border-zinc-900">
-          <table className="w-full text-sm">
-            <thead className="bg-zinc-950 text-zinc-400">
-              <tr>
-                <th className="text-left px-4 py-2">CCN</th>
-                <th className="text-left px-4 py-2">Course</th>
-                <th className="text-left px-4 py-2">Title</th>
-                <th className="text-left px-4 py-2">Instructors</th>
-                <th className="text-left px-4 py-2">Days / Time</th>
-                <th className="text-right px-4 py-2">Open</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sections.map((s) => (
-                <tr key={s.ccn} className="border-t border-zinc-900 hover:bg-zinc-950">
-                  <td className="px-4 py-2 font-mono">
-                    <Link href={`/class/${s.ccn}`} className="hover:text-white text-zinc-300">
-                      {s.ccn}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-2 whitespace-nowrap">
-                    {s.course_code} {s.section_type} {s.section_number}
-                  </td>
-                  <td className="px-4 py-2 max-w-xs truncate">{s.title}</td>
-                  <td className="px-4 py-2 max-w-xs truncate">{s.instructors ?? ""}</td>
-                  <td className="px-4 py-2 whitespace-nowrap text-zinc-400">
-                    {s.meeting_days ?? "—"}
-                    {s.meeting_time ? ` · ${s.meeting_time}` : ""}
-                  </td>
-                  <td className="px-4 py-2 text-right">
-                    <span className={s.open_seats > 0 ? "text-green-400" : "text-zinc-500"}>
-                      {s.open_seats}
-                    </span>
-                  </td>
-                </tr>
+          {rows.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-zinc-800 px-6 py-16 text-center">
+              <p className="text-zinc-300 mb-1">No sections match these filters.</p>
+              <p className="text-sm text-zinc-500">
+                Try removing a filter or pick another term.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {rows.map((s) => (
+                <SectionCard key={s.ccn} s={s} />
               ))}
-              {sections.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="px-4 py-10 text-center text-zinc-500">
-                    No sections matched. Try a broader query or a different term.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
+            </div>
+          )}
+        </section>
+      </div>
     </main>
+  );
+}
+
+function SectionCard({ s }: { s: Section }) {
+  const courseLine = [s.course_code, s.section_type, s.section_number].filter(Boolean).join(" ");
+  return (
+    <Link
+      href={`/class/${s.ccn}`}
+      className="block rounded-lg border border-zinc-900 hover:border-zinc-700 bg-zinc-950/50 hover:bg-zinc-950 transition-colors px-5 py-4"
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <p className="text-xs text-zinc-500 mb-1">
+            CCN {s.ccn} · {s.subject_name ?? "—"}
+          </p>
+          <h2 className="font-semibold text-lg leading-tight">{courseLine}</h2>
+          <p className="text-zinc-300 mt-0.5 truncate">{s.title}</p>
+          <p className="text-sm text-zinc-500 mt-1 truncate">{s.instructors ?? "Staff"}</p>
+          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-zinc-400">
+            {s.meeting_days && <span>{s.meeting_days}</span>}
+            {s.meeting_time && <span>{s.meeting_time}</span>}
+            {s.location && <span className="text-zinc-500">{s.location}</span>}
+            {s.units && <span className="text-zinc-500">{s.units} units</span>}
+            {s.instruction_mode && (
+              <span className="text-zinc-500">{s.instruction_mode}</span>
+            )}
+          </div>
+        </div>
+        <div className="text-right shrink-0">
+          <div
+            className={
+              "inline-block rounded-md px-2.5 py-1 font-mono text-sm " +
+              (s.open_seats > 0
+                ? "bg-green-950 text-green-300 border border-green-900"
+                : "bg-zinc-900 text-zinc-500 border border-zinc-800")
+            }
+          >
+            {s.open_seats}
+          </div>
+          <p className="text-[10px] uppercase tracking-wide text-zinc-500 mt-1">open</p>
+        </div>
+      </div>
+    </Link>
   );
 }
