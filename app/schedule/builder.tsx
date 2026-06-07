@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import type { Section } from "@/lib/types";
 import { sectionsConflict } from "@/lib/format";
 import type { TermGroup } from "@/lib/terms";
+import ScheduleGrid from "@/components/schedule-grid";
 
 const DEFAULT_TERM_NAME = "Fall 2026";
 
@@ -204,38 +205,51 @@ export default function ScheduleBuilder({ termGroups }: { termGroups: TermGroup[
               : `${combos.length} conflict-free option${combos.length === 1 ? "" : "s"}`}
           </h2>
           {saveMsg && <p className="text-sm text-zinc-300">{saveMsg}</p>}
-          {combos.map((combo, i) => (
-            <div key={i} className="rounded-lg border border-zinc-900 p-5">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold">Option {i + 1}</h3>
-                <button
-                  type="button"
-                  onClick={() => saveSchedule(combo)}
-                  disabled={saving}
-                  className="rounded-md bg-white text-black px-3 py-1.5 text-sm font-medium hover:bg-zinc-200 disabled:opacity-50"
-                >
-                  Save
-                </button>
+          {combos.map((combo, i) => {
+            const ccns = combo.map((s) => s.ccn).join(",");
+            const icsName = `option-${i + 1}`;
+            return (
+              <div key={i} className="rounded-lg border border-zinc-900 p-5">
+                <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
+                  <h3 className="font-semibold">Option {i + 1}</h3>
+                  <div className="flex gap-2">
+                    <a
+                      href={`/api/ics?ccns=${ccns}&name=${encodeURIComponent(icsName)}`}
+                      className="rounded-md border border-zinc-700 text-zinc-200 px-3 py-1.5 text-sm font-medium hover:border-zinc-500"
+                    >
+                      Export .ics
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => saveSchedule(combo)}
+                      disabled={saving}
+                      className="rounded-md bg-white text-black px-3 py-1.5 text-sm font-medium hover:bg-zinc-200 disabled:opacity-50"
+                    >
+                      Save
+                    </button>
+                  </div>
+                </div>
+                <ScheduleGrid sections={combo} />
+                <div className="mt-4 overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <tbody>
+                      {combo.map((s) => (
+                        <tr key={s.ccn} className="border-t border-zinc-900 first:border-t-0">
+                          <td className="py-2 pr-4 font-mono text-zinc-500">{s.ccn}</td>
+                          <td className="py-2 pr-4 font-medium">
+                            {s.course_code} {s.section_type} {s.section_number}
+                          </td>
+                          <td className="py-2 pr-4 text-zinc-400">{s.meeting_days ?? "—"}</td>
+                          <td className="py-2 pr-4 text-zinc-400">{s.meeting_time ?? "async"}</td>
+                          <td className="py-2 text-zinc-500">{s.instructors ?? ""}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <tbody>
-                    {combo.map((s) => (
-                      <tr key={s.ccn} className="border-t border-zinc-900 first:border-t-0">
-                        <td className="py-2 pr-4 font-mono text-zinc-500">{s.ccn}</td>
-                        <td className="py-2 pr-4 font-medium">
-                          {s.course_code} {s.section_type} {s.section_number}
-                        </td>
-                        <td className="py-2 pr-4 text-zinc-400">{s.meeting_days ?? "—"}</td>
-                        <td className="py-2 pr-4 text-zinc-400">{s.meeting_time ?? "async"}</td>
-                        <td className="py-2 text-zinc-500">{s.instructors ?? ""}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

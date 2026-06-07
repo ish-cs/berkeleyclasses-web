@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState, useTransition } from "react";
 import type { TermGroup } from "@/lib/terms";
 
 type Subject = { subject_id: string; name: string };
+type ReqOption = { code: string; description: string };
 
 type CurrentFilters = {
   q: string;
@@ -17,6 +18,7 @@ type CurrentFilters = {
   days: string[];
   units: string;
   instructor: string;
+  req: string;
   sort: string;
 };
 
@@ -33,10 +35,12 @@ const UNIT_OPTIONS = ["1", "2", "3", "4", "5"];
 export default function FilterSidebar({
   termGroups,
   subjects,
+  reqOptions,
   current,
 }: {
   termGroups: TermGroup[];
   subjects: Subject[];
+  reqOptions: ReqOption[];
   current: CurrentFilters;
 }) {
   const router = useRouter();
@@ -44,6 +48,7 @@ export default function FilterSidebar({
   const [isPending, startTransition] = useTransition();
   const [qLocal, setQLocal] = useState(current.q);
   const [instructorLocal, setInstructorLocal] = useState(current.instructor);
+  const [open, setOpen] = useState(false);
 
   // Sync local inputs when nav changes URL externally
   useEffect(() => setQLocal(current.q), [current.q]);
@@ -104,10 +109,30 @@ export default function FilterSidebar({
     startTransition(() => router.replace("/find", { scroll: false }));
   }
 
+  const activeCount = countActive(current);
+
   return (
     <div className={`rounded-lg border border-zinc-900 ${isPending ? "opacity-70" : ""} transition-opacity`}>
       <div className="border-b border-zinc-900 px-4 py-3 flex items-center justify-between">
-        <span className="text-sm font-semibold">Filters</span>
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="flex items-center gap-2 text-sm font-semibold lg:cursor-default"
+          aria-expanded={open}
+        >
+          <span>Filters</span>
+          {activeCount > 0 && (
+            <span className="rounded-full bg-zinc-800 text-zinc-200 text-[10px] font-mono px-1.5 py-0.5">
+              {activeCount}
+            </span>
+          )}
+          <svg
+            width="12" height="12" viewBox="0 0 12 12" fill="none"
+            className={"lg:hidden transition-transform " + (open ? "rotate-180" : "")}
+          >
+            <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
         <button
           type="button"
           onClick={resetAll}
@@ -117,7 +142,7 @@ export default function FilterSidebar({
         </button>
       </div>
 
-      <div className="p-4 space-y-5">
+      <div className={`p-4 space-y-5 ${open ? "" : "hidden lg:block"}`}>
         <FilterBlock label="Search">
           <input
             type="text"
@@ -200,6 +225,25 @@ export default function FilterSidebar({
           </div>
         </FilterBlock>
 
+        {reqOptions.length > 0 && (
+          <FilterBlock label="Requirement">
+            <div className="flex flex-wrap gap-1">
+              <PillButton active={!current.req} onClick={() => setOne("req", "")}>
+                Any
+              </PillButton>
+              {reqOptions.map((r) => (
+                <PillButton
+                  key={r.code}
+                  active={current.req === r.code}
+                  onClick={() => setOne("req", r.code)}
+                >
+                  <span title={r.description}>{r.code}</span>
+                </PillButton>
+              ))}
+            </div>
+          </FilterBlock>
+        )}
+
         <FilterBlock label="Course level">
           <div className="grid grid-cols-4 gap-1">
             <PillButton active={!current.level} onClick={() => setOne("level", "")}>
@@ -274,6 +318,21 @@ export default function FilterSidebar({
       </div>
     </div>
   );
+}
+
+function countActive(c: CurrentFilters): number {
+  let n = 0;
+  if (c.q) n++;
+  if (c.subject) n++;
+  if (c.openOnly) n++;
+  if (c.mode) n++;
+  if (c.level) n++;
+  if (c.req) n++;
+  if (c.types.length) n++;
+  if (c.days.length) n++;
+  if (c.units) n++;
+  if (c.instructor) n++;
+  return n;
 }
 
 function FilterBlock({ label, children }: { label: string; children: React.ReactNode }) {

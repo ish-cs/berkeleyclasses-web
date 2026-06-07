@@ -2,7 +2,11 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import Nav from "@/components/nav";
-import type { Section } from "@/lib/types";
+import GradeHistogram from "@/components/grade-histogram";
+import WaitlistTrend from "@/components/waitlist-trend";
+import StarButton from "@/components/star-button";
+import { extractPrereqs } from "@/lib/prereqs";
+import type { CourseMeta, Section, SectionSnapshot } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -25,23 +29,41 @@ export default async function ClassPage({
   const s = section as Section;
 
   // Other sections of the same course
-  const { data: siblings } = await supabase
-    .from("sections")
-    .select("ccn, section_type, section_number, instructors, meeting_days, meeting_time, open_seats")
-    .eq("course_code", s.course_code ?? "")
-    .eq("term_id", s.term_id ?? "")
-    .neq("ccn", ccnNum)
-    .order("section_number")
-    .limit(40);
+  const [{ data: siblings }, { data: metaRow }, { data: snapshotRows }] = await Promise.all([
+    supabase
+      .from("sections")
+      .select("ccn, section_type, section_number, instructors, meeting_days, meeting_time, open_seats")
+      .eq("course_code", s.course_code ?? "")
+      .eq("term_id", s.term_id ?? "")
+      .neq("ccn", ccnNum)
+      .order("section_number")
+      .limit(40),
+    s.course_code
+      ? supabase.from("course_meta").select("*").eq("course_code", s.course_code).maybeSingle()
+      : Promise.resolve({ data: null }),
+    supabase
+      .from("section_snapshots")
+      .select("ccn, taken_at, open_seats, enrolled, waitlisted, capacity")
+      .eq("ccn", ccnNum)
+      .order("taken_at", { ascending: true })
+      .limit(200),
+  ]);
+  const meta = (metaRow ?? null) as CourseMeta | null;
+  const snapshots = (snapshotRows ?? []) as SectionSnapshot[];
+  const prereqs = extractPrereqs({
+    metaText: meta?.prereq_text,
+    requiredCourses: meta?.required_courses,
+    description: s.description,
+  });
 
   return (
     <main className="min-h-screen bg-black text-white">
       <Nav />
-      <section className="mx-auto max-w-4xl px-6 py-10">
+      <section className="mx-auto max-w-4xl px-4 sm:px-6 py-8 sm:py-10">
         <Link href="/find" className="text-sm text-zinc-500 hover:text-zinc-300">
           ← Back to search
         </Link>
-        <div className="mt-4 flex items-center justify-between">
+        <div className="mt-4 flex items-start justify-between gap-4 flex-wrap">
           <div>
             <p className="text-zinc-500 text-sm">
               CCN {s.ccn} ·{" "}
@@ -56,18 +78,51 @@ export default async function ClassPage({
                 "—"
               )}
             </p>
-            <h1 className="text-3xl font-semibold">
+            <h1 className="text-2xl sm:text-3xl font-semibold break-words">
               {s.course_code} {s.section_type} {s.section_number}
             </h1>
-            <p className="text-xl text-zinc-300 mt-1">{s.title}</p>
+            <p className="text-lg sm:text-xl text-zinc-300 mt-1">{s.title}</p>
           </div>
-          <div className="text-right">
-            <p className={`text-3xl font-mono ${s.open_seats > 0 ? "text-green-400" : "text-zinc-500"}`}>
-              {s.open_seats}
-            </p>
-            <p className="text-xs text-zinc-500">open seats</p>
+          <div className="text-right flex items-start gap-3">
+            <StarButton ccn={s.ccn} variant="icon" />
+            <div>
+              <p className={`text-3xl font-mono ${s.open_seats > 0 ? "text-green-400" : "text-zinc-500"}`}>
+                {s.open_seats}
+              </p>
+              <p className="text-xs text-zinc-500">open seats</p>
+            </div>
           </div>
         </div>
+
+        {(meta?.requirement_code || prereqs.text || prereqs.courses.length > 0) && (
+          <div className="mt-5 flex flex-wrap gap-2 items-center">
+            {meta?.requirement_code && (
+              <span
+                className="inline-flex items-center gap-1.5 rounded-md bg-amber-500/10 border border-amber-500/40 text-amber-200 px-2.5 py-1 text-xs font-medium"
+                title={meta.requirement_description ?? meta.requirement_code}
+              >
+                <span className="font-mono">{meta.requirement_code}</span>
+                <span className="opacity-75">{meta.requirement_description ?? "Requirement"}</span>
+              </span>
+            )}
+            {prereqs.courses.map((c) => (
+              <span
+                key={`${c.subject} ${c.number}`}
+                className="rounded-md bg-zinc-900 border border-zinc-800 px-2.5 py-1 text-xs text-zinc-200"
+                title="Prerequisite"
+              >
+                <span className="text-zinc-500">prereq </span>
+                <span className="font-mono">{c.subject} {c.number}</span>
+              </span>
+            ))}
+          </div>
+        )}
+        {prereqs.text && prereqs.courses.length === 0 && (
+          <p className="mt-3 text-sm text-zinc-400">
+            <span className="text-zinc-500">Prereq: </span>
+            {prereqs.text}
+          </p>
+        )}
 
         <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-8 text-sm">
           <div className="border-l-2 border-zinc-800 pl-3">
@@ -103,6 +158,20 @@ export default async function ClassPage({
             value={`${s.enrolled} / ${s.capacity}${s.waitlisted ? ` (${s.waitlisted} waitlisted)` : ""}`}
           />
         </dl>
+
+        <div className="mt-10 grid gap-6 lg:grid-cols-2">
+          {meta?.grade_distribution && meta.grade_distribution.length > 0 && (
+            <GradeHistogram
+              distribution={meta.grade_distribution}
+              average={meta.grade_average}
+              sampleSize={meta.grade_sample_size}
+            />
+          )}
+          <WaitlistTrend
+            snapshots={snapshots}
+            current={{ open_seats: s.open_seats, waitlisted: s.waitlisted, capacity: s.capacity }}
+          />
+        </div>
 
         {s.description && (
           <div className="mt-10">

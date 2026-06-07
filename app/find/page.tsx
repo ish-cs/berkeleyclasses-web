@@ -19,6 +19,7 @@ type SearchParams = {
   days?: string;          // Mo,We,Fr etc. comma-separated
   units?: string;         // exact match like "4" or "1-3"
   instructor?: string;
+  req?: string;           // requirement designation code (e.g. AC)
   sort?: string;          // course_code_asc | course_code_desc | open_seats_desc | title_asc
 };
 
@@ -41,14 +42,41 @@ export default async function FindPage({
   const days = (params.days ?? "").split(",").filter(Boolean);
   const units = params.units?.trim() ?? "";
   const instructor = params.instructor?.trim() ?? "";
+  const req = params.req?.trim() ?? "";
   const sort = params.sort ?? "course_code_asc";
 
   const supabase = await createClient();
 
-  const [{ data: terms }, { data: subjects }] = await Promise.all([
+  const [{ data: terms }, { data: subjects }, { data: reqRows }] = await Promise.all([
     supabase.from("terms").select("term_id, name"),
     supabase.from("subjects").select("subject_id, name").order("name"),
+    supabase
+      .from("course_meta")
+      .select("requirement_code, requirement_description")
+      .not("requirement_code", "is", null),
   ]);
+
+  const reqOptionsMap = new Map<string, string>();
+  for (const r of reqRows ?? []) {
+    const code = r.requirement_code as string | null;
+    if (!code) continue;
+    if (!reqOptionsMap.has(code)) reqOptionsMap.set(code, (r.requirement_description as string) ?? code);
+  }
+  const reqOptions = [...reqOptionsMap.entries()]
+    .map(([code, description]) => ({ code, description }))
+    .sort((a, b) => a.code.localeCompare(b.code));
+
+  // Resolve req -> course_code IN-list before the main sections query
+  let reqCourseCodes: string[] | null = null;
+  if (req) {
+    const { data: codes } = await supabase
+      .from("course_meta")
+      .select("course_code")
+      .eq("requirement_code", req);
+    reqCourseCodes = (codes ?? []).map((c) => c.course_code as string).filter(Boolean);
+    // No matching courses → bail out with empty result
+    if (reqCourseCodes.length === 0) reqCourseCodes = ["__none__"];
+  }
 
   const allTerms = terms ?? [];
   const termIds = resolveTermIds(allTerms, termName);
@@ -72,6 +100,7 @@ export default async function FindPage({
   if (types.length > 0) query = query.in("section_type", types);
   if (units) query = query.eq("units", units);
   if (instructor) query = query.ilike("instructors", `%${instructor}%`);
+  if (reqCourseCodes) query = query.in("course_code", reqCourseCodes);
   if (q) {
     const esc = q.replace(/,/g, " ");
     query = query.or(
@@ -108,6 +137,7 @@ export default async function FindPage({
           <FilterSidebar
             termGroups={groupTermsByYear(allTerms)}
             subjects={subjects ?? []}
+            reqOptions={reqOptions}
             current={{
               q,
               term: termName,
@@ -119,6 +149,7 @@ export default async function FindPage({
               days,
               units,
               instructor,
+              req,
               sort,
             }}
           />

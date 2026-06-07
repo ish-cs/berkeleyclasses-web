@@ -54,3 +54,32 @@ export type WatchSubscription = {
   last_notified_at: string | null;
   created_at: string;
 };
+
+export type GradeDistEntry = { letter: string; count: number; percentage: number };
+
+export type CourseMeta = {
+  course_code: string;
+  grade_average: number | null;
+  grade_sample_size: number | null;
+  grade_distribution: GradeDistEntry[] | null;
+  prereq_text: string | null;
+  required_courses: { subject: string; number: string }[] | null;
+  requirement_code: string | null;
+  requirement_description: string | null;
+  updated_at: string;
+};
+
+export type SectionSnapshot = {
+  ccn: number;
+  taken_at: number;
+  open_seats: number;
+  enrolled: number;
+  waitlisted: number;
+  capacity: number;
+};
+
+export type StarredSection = {
+  user_id: string;
+  ccn: number;
+  created_at: string;
+};

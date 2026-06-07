@@ -10,18 +10,18 @@ export default async function Nav() {
 
   return (
     <header className="border-b border-zinc-900 sticky top-0 z-40 bg-black/80 backdrop-blur">
-      <div className="mx-auto max-w-6xl px-6 py-4 flex items-center justify-between">
-        <Link href="/" className="text-lg font-semibold">
-          berkeleyclasses<span className="text-zinc-500">.com</span>
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
+        <Link href="/" className="text-base sm:text-lg font-semibold whitespace-nowrap">
+          berkeleyclasses<span className="text-zinc-500 hidden sm:inline">.com</span>
         </Link>
-        <nav className="flex items-center gap-5 text-sm">
+        <nav className="flex items-center gap-3 sm:gap-5 text-sm">
           <Link href="/find" className="hover:text-zinc-300">
             Search
           </Link>
-          <Link href="/schedule" className="hover:text-zinc-300">
-            Schedule builder
+          <Link href="/schedule" className="hidden sm:inline hover:text-zinc-300">
+            Schedule
           </Link>
-          <Link href="/compare" className="hover:text-zinc-300">
+          <Link href="/compare" className="hidden md:inline hover:text-zinc-300">
             Compare
           </Link>
           {user ? (
@@ -34,7 +34,7 @@ export default async function Nav() {
           ) : (
             <Link
               href="/auth/signin"
-              className="rounded-md bg-white text-black px-3 py-1.5 font-medium hover:bg-zinc-200"
+              className="rounded-md bg-white text-black px-3 py-1.5 font-medium hover:bg-zinc-200 whitespace-nowrap"
             >
               Sign in
             </Link>
