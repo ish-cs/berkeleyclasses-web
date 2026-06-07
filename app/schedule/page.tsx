@@ -1,15 +1,16 @@
 import { createClient } from "@/lib/supabase/server";
 import Nav from "@/components/nav";
 import ScheduleBuilder from "./builder";
+import { sortTermsByYear } from "@/lib/terms";
 
 export const dynamic = "force-dynamic";
 
 export default async function SchedulePage() {
   const supabase = await createClient();
-  const { data: terms } = await supabase
+  const { data: termsRaw } = await supabase
     .from("terms")
-    .select("term_id, name")
-    .order("name");
+    .select("term_id, name");
+  const terms = sortTermsByYear(termsRaw ?? []);
   return (
     <main className="min-h-screen bg-black text-white">
       <Nav />
@@ -19,7 +20,7 @@ export default async function SchedulePage() {
           Add courses to your wishlist. We&apos;ll find every valid combination of sections with
           no time conflicts.
         </p>
-        <ScheduleBuilder terms={terms ?? []} />
+        <ScheduleBuilder terms={terms} />
       </section>
     </main>
   );

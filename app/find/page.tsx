@@ -4,6 +4,7 @@ import Nav from "@/components/nav";
 import type { Section } from "@/lib/types";
 import FilterSidebar from "./filter-sidebar";
 import SortSelect from "./sort-select";
+import { sortTermsByYear } from "@/lib/terms";
 
 export const dynamic = "force-dynamic";
 
@@ -105,7 +106,7 @@ export default async function FindPage({
       <div className="mx-auto max-w-7xl px-4 sm:px-6 py-6 grid gap-6 lg:grid-cols-[280px_1fr]">
         <aside className="lg:sticky lg:top-20 lg:self-start">
           <FilterSidebar
-            terms={terms ?? []}
+            terms={sortTermsByYear(terms ?? [])}
             subjects={subjects ?? []}
             current={{
               q,

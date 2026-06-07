@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import Nav from "@/components/nav";
 import type { Section } from "@/lib/types";
+import { sortTermsByYear, isRealTerm } from "@/lib/terms";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +34,7 @@ export default async function DeptPage({
   const supabase = await createClient();
   const [{ data: termRow }, { data: terms }] = await Promise.all([
     supabase.from("terms").select("term_id, name").ilike("name", termName).maybeSingle(),
-    supabase.from("terms").select("term_id, name").order("name"),
+    supabase.from("terms").select("term_id, name"),
   ]);
 
   if (!termRow) {
@@ -136,7 +137,7 @@ export default async function DeptPage({
         </div>
 
         <div className="flex flex-wrap gap-2 mb-8">
-          {(terms ?? []).filter((t) => /^(Fall|Spring|Summer) \d{4}$/.test(t.name)).map((t) => (
+          {sortTermsByYear((terms ?? []).filter((t) => isRealTerm(t.name))).map((t) => (
             <Link
               key={t.term_id}
               href={`/dept/${encodeURIComponent(code)}?term=${encodeURIComponent(t.name)}`}
