@@ -4,7 +4,7 @@ import Nav from "@/components/nav";
 import type { Section } from "@/lib/types";
 import FilterSidebar from "./filter-sidebar";
 import SortSelect from "./sort-select";
-import { sortTermsByYear } from "@/lib/terms";
+import { groupTermsByYear, resolveTermIds } from "@/lib/terms";
 
 export const dynamic = "force-dynamic";
 
@@ -45,14 +45,13 @@ export default async function FindPage({
 
   const supabase = await createClient();
 
-  // Parallel: terms, subjects, term lookup
-  const [{ data: terms }, { data: subjects }, { data: termRow }] = await Promise.all([
-    supabase.from("terms").select("term_id, name").order("name"),
+  const [{ data: terms }, { data: subjects }] = await Promise.all([
+    supabase.from("terms").select("term_id, name"),
     supabase.from("subjects").select("subject_id, name").order("name"),
-    supabase.from("terms").select("term_id, name").ilike("name", termName).maybeSingle(),
   ]);
 
-  const termId = termRow?.term_id ?? null;
+  const allTerms = terms ?? [];
+  const termIds = resolveTermIds(allTerms, termName);
 
   let query = supabase
     .from("sections")
@@ -61,7 +60,8 @@ export default async function FindPage({
     )
     .limit(RESULT_LIMIT);
 
-  if (termId) query = query.eq("term_id", termId);
+  if (termIds.length === 1) query = query.eq("term_id", termIds[0]);
+  else if (termIds.length > 1) query = query.in("term_id", termIds);
   if (subject) query = query.ilike("subject_name", `%${subject}%`);
   if (openOnly) query = query.gt("open_seats", 0);
   if (mode === "in-person") query = query.ilike("instruction_mode", "%in-person%");
@@ -106,7 +106,7 @@ export default async function FindPage({
       <div className="mx-auto max-w-7xl px-4 sm:px-6 py-6 grid gap-6 lg:grid-cols-[280px_1fr]">
         <aside className="lg:sticky lg:top-20 lg:self-start">
           <FilterSidebar
-            terms={sortTermsByYear(terms ?? [])}
+            termGroups={groupTermsByYear(allTerms)}
             subjects={subjects ?? []}
             current={{
               q,

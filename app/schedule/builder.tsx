@@ -4,12 +4,24 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Section } from "@/lib/types";
 import { sectionsConflict } from "@/lib/format";
-
-type TermOpt = { term_id: string; name: string };
+import type { TermGroup } from "@/lib/terms";
 
 const DEFAULT_TERM_NAME = "Fall 2026";
 
-export default function ScheduleBuilder({ terms }: { terms: TermOpt[] }) {
+function flattenTerms(groups: TermGroup[]): { term_id: string; name: string }[] {
+  const out: { term_id: string; name: string }[] = [];
+  for (const g of groups) {
+    if (g.kind === "single") out.push(g.term);
+    else {
+      out.push(g.parent);
+      out.push(...g.children);
+    }
+  }
+  return out;
+}
+
+export default function ScheduleBuilder({ termGroups }: { termGroups: TermGroup[] }) {
+  const terms = useMemo(() => flattenTerms(termGroups), [termGroups]);
   const initialTerm = terms.find((t) => t.name === DEFAULT_TERM_NAME)?.term_id ?? terms[0]?.term_id ?? "";
   const [termId, setTermId] = useState(initialTerm);
   const [courseInput, setCourseInput] = useState("");
@@ -116,11 +128,22 @@ export default function ScheduleBuilder({ terms }: { terms: TermOpt[] }) {
             onChange={(e) => setTermId(e.target.value)}
             className="rounded-md bg-zinc-900 border border-zinc-800 px-3 py-2 outline-none focus:border-zinc-500"
           >
-            {terms.map((t) => (
-              <option key={t.term_id} value={t.term_id}>
-                {t.name}
-              </option>
-            ))}
+            {termGroups.map((g) =>
+              g.kind === "single" ? (
+                <option key={g.term.term_id} value={g.term.term_id}>
+                  {g.term.name}
+                </option>
+              ) : (
+                <optgroup key={g.parent.term_id} label={g.parent.name}>
+                  <option value={g.parent.term_id}>{g.parent.name}</option>
+                  {g.children.map((c) => (
+                    <option key={c.term_id} value={c.term_id}>
+                      &nbsp;&nbsp;{c.name}
+                    </option>
+                  ))}
+                </optgroup>
+              ),
+            )}
           </select>
         </div>
         <div className="flex-1 min-w-[260px]">

@@ -2,8 +2,8 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState, useTransition } from "react";
+import type { TermGroup } from "@/lib/terms";
 
-type Term = { term_id: string; name: string };
 type Subject = { subject_id: string; name: string };
 
 type CurrentFilters = {
@@ -31,11 +31,11 @@ const TYPES = ["LEC", "DIS", "LAB", "SEM", "STD"];
 const UNIT_OPTIONS = ["1", "2", "3", "4", "5"];
 
 export default function FilterSidebar({
-  terms,
+  termGroups,
   subjects,
   current,
 }: {
-  terms: Term[];
+  termGroups: TermGroup[];
   subjects: Subject[];
   current: CurrentFilters;
 }) {
@@ -134,11 +134,22 @@ export default function FilterSidebar({
             onChange={(e) => setOne("term", e.target.value)}
             className="w-full rounded-md bg-zinc-900 border border-zinc-800 px-3 py-2 text-sm outline-none focus:border-zinc-500"
           >
-            {terms.map((t) => (
-              <option key={t.term_id} value={t.name}>
-                {t.name}
-              </option>
-            ))}
+            {termGroups.map((g) =>
+              g.kind === "single" ? (
+                <option key={g.term.term_id} value={g.term.name}>
+                  {g.term.name}
+                </option>
+              ) : (
+                <optgroup key={g.parent.term_id} label={g.parent.name}>
+                  <option value={g.parent.name}>All {g.parent.name}</option>
+                  {g.children.map((c) => (
+                    <option key={c.term_id} value={c.name}>
+                      &nbsp;&nbsp;{c.name}
+                    </option>
+                  ))}
+                </optgroup>
+              ),
+            )}
           </select>
         </FilterBlock>
 
