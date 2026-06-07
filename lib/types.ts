@@ -66,6 +66,7 @@ export type CourseMeta = {
   required_courses: { subject: string; number: string }[] | null;
   requirement_code: string | null;
   requirement_description: string | null;
+  requirements: string[] | null;
   updated_at: string;
 };
 

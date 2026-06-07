@@ -52,29 +52,43 @@ export default async function FindPage({
     supabase.from("subjects").select("subject_id, name").order("name"),
     supabase
       .from("course_meta")
-      .select("requirement_code, requirement_description")
-      .not("requirement_code", "is", null),
+      .select("requirements")
+      .not("requirements", "is", null),
   ]);
 
-  const reqOptionsMap = new Map<string, string>();
-  for (const r of reqRows ?? []) {
-    const code = r.requirement_code as string | null;
-    if (!code) continue;
-    if (!reqOptionsMap.has(code)) reqOptionsMap.set(code, (r.requirement_description as string) ?? code);
+  // Canonical order matches classes.berkeley.edu sidebar so the filter feels
+  // familiar to anyone coming from that page.
+  const REQUIREMENT_ORDER = [
+    "American Cultures",
+    "American Hist & Institutions",
+    "Arts & Literature",
+    "Biological Science",
+    "Entry Level Writing",
+    "Historical Studies",
+    "International Studies",
+    "Philosophy & Values",
+    "Physical Science",
+    "Reading and Composition A",
+    "Reading and Composition B",
+    "Social & Behavioral Sciences",
+  ];
+  const reqCounts = new Map<string, number>();
+  for (const row of reqRows ?? []) {
+    const reqs = (row.requirements ?? []) as string[];
+    for (const r of reqs) reqCounts.set(r, (reqCounts.get(r) ?? 0) + 1);
   }
-  const reqOptions = [...reqOptionsMap.entries()]
-    .map(([code, description]) => ({ code, description }))
-    .sort((a, b) => a.code.localeCompare(b.code));
+  const reqOptions = REQUIREMENT_ORDER
+    .filter((name) => reqCounts.has(name))
+    .map((name) => ({ code: name, description: `${reqCounts.get(name)} courses` }));
 
-  // Resolve req -> course_code IN-list before the main sections query
+  // Resolve req → course_code IN-list via the array-contains operator.
   let reqCourseCodes: string[] | null = null;
   if (req) {
     const { data: codes } = await supabase
       .from("course_meta")
       .select("course_code")
-      .eq("requirement_code", req);
+      .contains("requirements", [req]);
     reqCourseCodes = (codes ?? []).map((c) => c.course_code as string).filter(Boolean);
-    // No matching courses → bail out with empty result
     if (reqCourseCodes.length === 0) reqCourseCodes = ["__none__"];
   }
 

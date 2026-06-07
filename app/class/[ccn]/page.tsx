@@ -94,17 +94,18 @@ export default async function ClassPage({
           </div>
         </div>
 
-        {(meta?.requirement_code || prereqs.text || prereqs.courses.length > 0) && (
+        {((meta?.requirements && meta.requirements.length > 0) || prereqs.text || prereqs.courses.length > 0) && (
           <div className="mt-5 flex flex-wrap gap-2 items-center">
-            {meta?.requirement_code && (
-              <span
-                className="inline-flex items-center gap-1.5 rounded-md bg-amber-500/10 border border-amber-500/40 text-amber-200 px-2.5 py-1 text-xs font-medium"
-                title={meta.requirement_description ?? meta.requirement_code}
+            {(meta?.requirements ?? []).map((r) => (
+              <Link
+                key={r}
+                href={`/find?req=${encodeURIComponent(r)}`}
+                className="rounded-md bg-amber-500/10 border border-amber-500/40 text-amber-200 px-2.5 py-1 text-xs font-medium hover:bg-amber-500/20"
+                title="Satisfies this UC Berkeley general requirement"
               >
-                <span className="font-mono">{meta.requirement_code}</span>
-                <span className="opacity-75">{meta.requirement_description ?? "Requirement"}</span>
-              </span>
-            )}
+                {r}
+              </Link>
+            ))}
             {prereqs.courses.map((c) => (
               <span
                 key={`${c.subject} ${c.number}`}

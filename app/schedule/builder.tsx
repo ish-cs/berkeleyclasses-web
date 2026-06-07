@@ -76,7 +76,7 @@ export default function ScheduleBuilder({ termGroups }: { termGroups: TermGroup[
   }, [sectionsByCourse, wishlist]);
 
   function addCourse() {
-    const c = courseInput.trim().toUpperCase();
+    const c = normalizeCourseCode(courseInput);
     if (!c || wishlist.includes(c)) return;
     setWishlist([...wishlist, c]);
     setCourseInput("");
@@ -197,6 +197,19 @@ export default function ScheduleBuilder({ termGroups }: { termGroups: TermGroup[
       {error && <p className="text-red-400 text-sm mb-4">{error}</p>}
       {loading && <p className="text-zinc-500 text-sm mb-4">Loading sections…</p>}
 
+      {!loading && wishlist.length > 0 && (
+        <>
+          {courseSummary
+            .filter((cs) => cs.count === 0 && sectionsByCourse[cs.course] !== undefined)
+            .map((cs) => (
+              <p key={cs.course} className="text-amber-300 text-sm mb-2">
+                No sections found for <span className="font-mono">{cs.course}</span> in this term —
+                check the spelling or term.
+              </p>
+            ))}
+        </>
+      )}
+
       {wishlist.length > 0 && !loading && (
         <div className="space-y-6">
           <h2 className="text-xl font-semibold">
@@ -254,6 +267,28 @@ export default function ScheduleBuilder({ termGroups }: { termGroups: TermGroup[
       )}
     </div>
   );
+}
+
+// Normalize varied user input into the canonical "SUBJECT NUMBER" form the
+// sections table uses. Examples:
+//   "compsci 70"               -> "COMPSCI 70"
+//   "COLWRIT-R4B"              -> "COLWRIT R4B"
+//   "COLWRIT R4B 020"          -> "COLWRIT R4B"
+//   "COMPSCI 70 LEC 001"       -> "COMPSCI 70"
+//   "COMPSCI C8"               -> "COMPSCI C8"
+// We accept the first alpha-only token as the subject and the first
+// numeric-leading token (which may have a letter prefix like R/C and a
+// letter suffix like A/B/AC) as the course number. Anything after is
+// ignored — that's where users tend to paste a section CCN or LEC code.
+export function normalizeCourseCode(raw: string): string {
+  const tokens = raw.toUpperCase().replace(/[-_/]+/g, " ").split(/\s+/).filter(Boolean);
+  if (tokens.length === 0) return "";
+  const subject = tokens.find((t) => /^[A-Z&]+$/.test(t));
+  if (!subject) return tokens.slice(0, 2).join(" "); // fallback to best guess
+  const afterSubject = tokens.slice(tokens.indexOf(subject) + 1);
+  const number = afterSubject.find((t) => /^[A-Z]?\d+[A-Z]*$/.test(t));
+  if (!number) return subject;
+  return `${subject} ${number}`;
 }
 
 function enumerateValid(lists: Section[][], cap: number): Section[][] {
