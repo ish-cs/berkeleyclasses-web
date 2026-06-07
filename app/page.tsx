@@ -1,49 +1,19 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import Nav from "@/components/nav";
+
+export const dynamic = "force-dynamic";
 
 export default async function Home() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
 
-  // Pull a snapshot of stats just for the landing page hero.
   const { count: sectionsCount } = await supabase
     .from("sections")
     .select("ccn", { count: "exact", head: true });
 
   return (
     <main className="min-h-screen bg-black text-white">
-      <header className="border-b border-zinc-900">
-        <div className="mx-auto max-w-6xl px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="text-lg font-semibold">
-            berkeleyclasses<span className="text-zinc-500">.com</span>
-          </Link>
-          <nav className="flex items-center gap-6 text-sm">
-            <Link href="/find" className="hover:text-zinc-300">
-              Search
-            </Link>
-            <Link href="/schedule" className="hover:text-zinc-300">
-              Schedule builder
-            </Link>
-            <Link href="/compare" className="hover:text-zinc-300">
-              Compare
-            </Link>
-            {user ? (
-              <Link href="/saved" className="hover:text-zinc-300">
-                My schedules
-              </Link>
-            ) : (
-              <Link
-                href="/auth/signin"
-                className="rounded-md bg-white text-black px-3 py-1.5 font-medium hover:bg-zinc-200"
-              >
-                Sign in
-              </Link>
-            )}
-          </nav>
-        </div>
-      </header>
+      <Nav />
 
       <section className="mx-auto max-w-6xl px-6 py-24">
         <h1 className="text-5xl md:text-6xl font-semibold tracking-tight leading-tight max-w-3xl">
