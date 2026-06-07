@@ -1,8 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { GlassCard, GlassButton } from "@/components/glass";
+
+const WRAP: React.CSSProperties = { maxWidth: "480px", margin: "0 auto", padding: "5rem 1.5rem 4rem" };
+const display = (size: string, weight = 600): React.CSSProperties => ({
+  fontFamily: "var(--font-display)",
+  fontWeight: weight,
+  letterSpacing: "var(--tracking-display)",
+  fontSize: size,
+});
+const text: React.CSSProperties = { fontFamily: "var(--font-text)", color: "var(--glass-text-muted)" };
 
 export default function SignInForm() {
   const router = useRouter();
@@ -26,10 +37,7 @@ export default function SignInForm() {
       provider: "google",
       options: {
         redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
-        queryParams: {
-          hd: "berkeley.edu",
-          prompt: "select_account",
-        },
+        queryParams: { hd: "berkeley.edu", prompt: "select_account" },
       },
     });
     if (error) {
@@ -39,24 +47,28 @@ export default function SignInForm() {
   }
 
   return (
-    <main className="mx-auto max-w-md px-6 py-24">
-      <h1 className="text-3xl font-semibold mb-2">Sign in</h1>
-      <p className="text-gray-400 mb-8">
-        Use your <span className="text-white">@berkeley.edu</span> Google account to save schedules
-        and watch waitlists.
-      </p>
-      <button
-        type="button"
-        onClick={signInWithGoogle}
-        disabled={loading}
-        className="w-full rounded-md bg-white text-black px-4 py-3 font-medium hover:bg-gray-200 disabled:opacity-50"
-      >
-        {loading ? "Redirecting…" : "Continue with Google"}
-      </button>
-      {error && <p className="mt-4 text-sm text-red-400">{error}</p>}
-      <p className="mt-6 text-sm text-gray-500">
-        Browse, search, and build schedules without signing in. Sign-in is only needed to save and
-        get waitlist alerts.
+    <main style={WRAP}>
+      <GlassCard elevation={2} radius="lg" padding="2.25rem">
+        <h1 style={{ margin: 0, ...display("1.85rem"), color: "var(--glass-text)" }}>Sign in</h1>
+        <p style={{ margin: "0.75rem 0 1.75rem", ...text, lineHeight: 1.5 }}>
+          Use your <span style={{ color: "var(--glass-text)" }}>@berkeley.edu</span> Google account to save schedules
+          and watch waitlists.
+        </p>
+        <GlassButton variant="primary" size="lg" disabled={loading} onClick={signInWithGoogle} style={{ width: "100%" }}>
+          {loading ? "Redirecting…" : "Continue with Google"}
+        </GlassButton>
+        {error && (
+          <p style={{ marginTop: "1rem", color: "var(--cap-conflict-text)", fontSize: "0.875rem" }}>{error}</p>
+        )}
+        <p style={{ marginTop: "1.5rem", ...text, fontSize: "0.85rem", lineHeight: 1.5 }}>
+          Browse, search, and build schedules without signing in. Sign-in is only needed to save and get waitlist
+          alerts.
+        </p>
+      </GlassCard>
+      <p style={{ margin: "1.5rem 0 0", textAlign: "center", ...text, fontSize: "0.8rem" }}>
+        <Link href="/" style={{ color: "var(--glass-text-faint)", textDecoration: "none" }}>
+          ← Back home
+        </Link>
       </p>
     </main>
   );

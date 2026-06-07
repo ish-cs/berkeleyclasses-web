@@ -1,13 +1,24 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import Nav from "@/components/nav";
+import {  GlassCard, StatTile } from "@/components/glass";
+import GlassNav from "@/components/glass/GlassNav";
 import type { Section } from "@/lib/types";
 import { sortTermsByYear, isRealTerm } from "@/lib/terms";
 
 export const dynamic = "force-dynamic";
 
 const DEFAULT_TERM = "Fall 2026";
+
+const WRAP: React.CSSProperties = { maxWidth: "1080px", margin: "0 auto", padding: "1.75rem 1.5rem 4rem" };
+const display = (size: string, weight = 600): React.CSSProperties => ({
+  fontFamily: "var(--font-display)",
+  fontWeight: weight,
+  letterSpacing: "var(--tracking-display)",
+  fontSize: size,
+});
+const text: React.CSSProperties = { fontFamily: "var(--font-text)", color: "var(--glass-text-muted)" };
+const mono: React.CSSProperties = { fontFamily: "var(--font-mono-sf)" };
 
 type CourseAgg = {
   course_code: string;
@@ -39,12 +50,12 @@ export default async function DeptPage({
 
   if (!termRow) {
     return (
-      <main className="min-h-screen bg-black text-white">
-        <Nav />
-        <section className="mx-auto max-w-5xl px-6 py-10">
-          <p className="text-zinc-400">Term &ldquo;{termName}&rdquo; not found.</p>
-        </section>
-      </main>
+      <>
+        <GlassNav />
+        <main style={WRAP}>
+          <p style={{ color: "var(--glass-text-muted)", ...text }}>Term &ldquo;{termName}&rdquo; not found.</p>
+        </main>
+      </>
     );
   }
 
@@ -53,14 +64,11 @@ export default async function DeptPage({
     .from("sections")
     .select("*")
     .eq("term_id", termRow.term_id)
-    .or(
-      `subject_name.ilike.%${code}%,course_code.ilike.${upper} %,course_code.ilike.${upper}%`,
-    )
+    .or(`subject_name.ilike.%${code}%,course_code.ilike.${upper} %,course_code.ilike.${upper}%`)
     .order("course_code")
     .limit(2000);
 
   let sections = (rows ?? []) as Section[];
-
   if (sections.length === 0) {
     const fallback = await supabase
       .from("sections")
@@ -70,10 +78,8 @@ export default async function DeptPage({
       .limit(2000);
     sections = (fallback.data ?? []) as Section[];
   }
-
   if (sections.length === 0) notFound();
 
-  // Aggregate
   const byCourse = new Map<string, CourseAgg>();
   const instructorCounts = new Map<string, number>();
   let totalOpen = 0;
@@ -111,136 +117,170 @@ export default async function DeptPage({
   const topInstructors = [...instructorCounts.entries()]
     .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
     .slice(0, 8);
-
   const courses = [...byCourse.values()].sort((a, b) => a.course_code.localeCompare(b.course_code));
-
   const subjectName = sections[0].subject_name ?? code;
 
   return (
-    <main className="min-h-screen bg-black text-white">
-      <Nav />
-      <section className="mx-auto max-w-5xl px-6 py-10">
-        <Link href="/find" className="text-sm text-zinc-500 hover:text-zinc-300">
+    <>
+      <GlassNav />
+      <section style={WRAP}>
+        <Link
+          href="/find"
+          style={{ ...text, fontSize: "0.875rem", color: "var(--glass-text-faint)", textDecoration: "none" }}
+        >
           ← Back to search
         </Link>
 
-        <div className="mt-4 mb-6">
-          <p className="text-zinc-500 text-sm uppercase tracking-wider">Department</p>
-          <h1 className="text-3xl font-semibold">{subjectName}</h1>
-          <p className="text-zinc-400 mt-1">
+        <div style={{ margin: "1rem 0 1.5rem" }}>
+          <p
+            style={{
+              margin: 0,
+              fontSize: "0.7rem",
+              textTransform: "uppercase",
+              letterSpacing: "0.08em",
+              color: "var(--glass-text-faint)",
+              fontFamily: "var(--font-text)",
+            }}
+          >
+            Department
+          </p>
+          <h1 style={{ margin: "0.3rem 0 0", ...display("2rem"), color: "var(--glass-text)" }}>{subjectName}</h1>
+          <p style={{ margin: "0.4rem 0 0", ...text }}>
             {sections.length} sections · {courses.length} courses ·{" "}
-            <span className={totalOpen > 0 ? "text-green-400" : "text-zinc-400"}>
+            <span style={{ color: totalOpen > 0 ? "var(--cap-open-text)" : "var(--glass-text-muted)" }}>
               {totalOpen} open seats
-            </span>
-            {" · "}{termRow.name}
+            </span>{" "}
+            · {termRow.name}
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-2 mb-8">
-          {sortTermsByYear((terms ?? []).filter((t) => isRealTerm(t.name))).map((t) => (
-            <Link
-              key={t.term_id}
-              href={`/dept/${encodeURIComponent(code)}?term=${encodeURIComponent(t.name)}`}
-              className={
-                "rounded-md px-3 py-1.5 text-xs font-medium transition-colors " +
-                (t.name === termName
-                  ? "bg-white text-black border border-white"
-                  : "bg-zinc-900 border border-zinc-800 text-zinc-300 hover:border-zinc-600")
-              }
-            >
-              {t.name}
-            </Link>
-          ))}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", marginBottom: "2rem" }}>
+          {sortTermsByYear((terms ?? []).filter((t) => isRealTerm(t.name))).map((t) => {
+            const active = t.name === termName;
+            return (
+              <Link
+                key={t.term_id}
+                href={`/dept/${encodeURIComponent(code)}?term=${encodeURIComponent(t.name)}`}
+                style={{
+                  padding: "0.3rem 0.85rem",
+                  borderRadius: "var(--r-pill)",
+                  fontSize: "0.75rem",
+                  fontWeight: 600,
+                  fontFamily: "var(--font-text)",
+                  textDecoration: "none",
+                  background: active
+                    ? "linear-gradient(180deg, rgba(74,144,217,0.5), rgba(0,50,98,0.6))"
+                    : "var(--glass-1)",
+                  color: active ? "#fff" : "var(--glass-text-muted)",
+                  border: active ? "1px solid rgba(120,180,240,0.55)" : "1px solid var(--glass-border)",
+                }}
+              >
+                {t.name}
+              </Link>
+            );
+          })}
         </div>
 
-        <div className="grid md:grid-cols-4 gap-4 mb-10">
-          <Stat label="Sections" value={sections.length} />
-          <Stat label="Courses" value={courses.length} />
-          <Stat
-            label="Open seats"
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+            gap: "1rem",
+            marginBottom: "2rem",
+          }}
+        >
+          <StatTile value={sections.length} label="Sections" />
+          <StatTile value={courses.length} label="Courses" />
+          <StatTile
             value={totalOpen}
-            valueClass={totalOpen > 0 ? "text-green-400" : ""}
+            label="Open seats"
+            accent={totalOpen > 0 ? "var(--cap-open-text)" : undefined}
           />
-          <Stat
-            label="Fill rate"
+          <StatTile
             value={totalCap > 0 ? `${Math.round((100 * totalEnrolled) / totalCap)}%` : "—"}
+            label="Fill rate"
           />
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6">
+        <div
+          style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "1.25rem" }}
+        >
           <div>
-            <h2 className="text-lg font-semibold mb-3">Courses offered</h2>
-            <div className="rounded-lg border border-zinc-900 divide-y divide-zinc-900">
-              {courses.map((c) => (
+            <h2 style={{ margin: "0 0 0.85rem", ...display("1.25rem"), color: "var(--glass-text)" }}>
+              Courses offered
+            </h2>
+            <GlassCard elevation={1} radius="lg" padding={0}>
+              {courses.map((c, i) => (
                 <Link
                   key={c.course_code}
                   href={`/find?term=${encodeURIComponent(termRow.name)}&q=${encodeURIComponent(c.course_code)}`}
-                  className="block px-4 py-3 hover:bg-zinc-950/50"
+                  style={{
+                    display: "block",
+                    padding: "0.85rem 1rem",
+                    borderTop: i === 0 ? "none" : "1px solid var(--glass-border)",
+                    textDecoration: "none",
+                    color: "var(--glass-text)",
+                  }}
                 >
-                  <div className="flex items-baseline justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="font-medium truncate">{c.course_code}</p>
-                      <p className="text-xs text-zinc-500 truncate">{c.sample_title}</p>
-                    </div>
-                    <div className="text-right shrink-0 text-xs">
-                      <p className="text-zinc-400">
-                        {c.section_count} sec
-                      </p>
+                  <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "0.85rem" }}>
+                    <div style={{ minWidth: 0 }}>
+                      <p style={{ margin: 0, fontFamily: "var(--font-text)", fontWeight: 600 }}>{c.course_code}</p>
                       <p
-                        className={
-                          c.open_seats > 0 ? "text-green-400" : "text-zinc-500"
-                        }
+                        style={{
+                          margin: "0.2rem 0 0",
+                          fontSize: "0.75rem",
+                          color: "var(--glass-text-faint)",
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}
                       >
+                        {c.sample_title}
+                      </p>
+                    </div>
+                    <div style={{ textAlign: "right", flexShrink: 0, fontSize: "0.75rem", ...mono }}>
+                      <p style={{ margin: 0, color: "var(--glass-text-muted)" }}>{c.section_count} sec</p>
+                      <p style={{ margin: 0, color: c.open_seats > 0 ? "var(--cap-open-text)" : "var(--glass-text-faint)" }}>
                         {c.open_seats} open
                       </p>
                     </div>
                   </div>
                 </Link>
               ))}
-            </div>
+            </GlassCard>
           </div>
 
           <div>
-            <h2 className="text-lg font-semibold mb-3">Top instructors</h2>
+            <h2 style={{ margin: "0 0 0.85rem", ...display("1.25rem"), color: "var(--glass-text)" }}>Top instructors</h2>
             {topInstructors.length === 0 ? (
-              <p className="text-zinc-500 text-sm">No instructors found in this term yet.</p>
+              <p style={{ ...text, fontSize: "0.875rem" }}>No instructors found in this term yet.</p>
             ) : (
-              <ul className="rounded-lg border border-zinc-900 divide-y divide-zinc-900">
-                {topInstructors.map(([name, count]) => (
-                  <li key={name}>
-                    <Link
-                      href={`/instructor/${encodeURIComponent(name)}?term=${encodeURIComponent(termRow.name)}`}
-                      className="flex items-center justify-between px-4 py-3 hover:bg-zinc-950/50"
-                    >
-                      <span className="text-zinc-200">{name}</span>
-                      <span className="text-zinc-500 text-sm">
-                        {count} section{count === 1 ? "" : "s"}
-                      </span>
-                    </Link>
-                  </li>
+              <GlassCard elevation={1} radius="lg" padding={0}>
+                {topInstructors.map(([name, count], i) => (
+                  <Link
+                    key={name}
+                    href={`/instructor/${encodeURIComponent(name)}?term=${encodeURIComponent(termRow.name)}`}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: "0.85rem 1rem",
+                      borderTop: i === 0 ? "none" : "1px solid var(--glass-border)",
+                      textDecoration: "none",
+                      color: "var(--glass-text)",
+                    }}
+                  >
+                    <span style={{ fontFamily: "var(--font-text)" }}>{name}</span>
+                    <span style={{ ...mono, fontSize: "0.8125rem", color: "var(--glass-text-faint)" }}>
+                      {count} section{count === 1 ? "" : "s"}
+                    </span>
+                  </Link>
                 ))}
-              </ul>
+              </GlassCard>
             )}
           </div>
         </div>
       </section>
-    </main>
-  );
-}
-
-function Stat({
-  label,
-  value,
-  valueClass = "",
-}: {
-  label: string;
-  value: string | number;
-  valueClass?: string;
-}) {
-  return (
-    <div className="rounded-lg border border-zinc-900 px-4 py-3">
-      <p className="text-xs uppercase tracking-wider text-zinc-500">{label}</p>
-      <p className={`text-2xl font-semibold mt-1 ${valueClass}`}>{value}</p>
-    </div>
+    </>
   );
 }

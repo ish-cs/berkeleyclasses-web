@@ -3,10 +3,12 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { GlassButton } from "@/components/glass";
 
 export default function DeleteScheduleButton({ id }: { id: string }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
+
   async function del() {
     if (!confirm("Delete this schedule?")) return;
     setBusy(true);
@@ -14,14 +16,10 @@ export default function DeleteScheduleButton({ id }: { id: string }) {
     await supabase.from("saved_schedules").delete().eq("id", id);
     router.refresh();
   }
+
   return (
-    <button
-      type="button"
-      onClick={del}
-      disabled={busy}
-      className="text-sm text-zinc-500 hover:text-red-400 disabled:opacity-50 shrink-0"
-    >
+    <GlassButton type="button" variant="ghost" size="sm" onClick={del} disabled={busy}>
       Delete
-    </button>
+    </GlassButton>
   );
 }

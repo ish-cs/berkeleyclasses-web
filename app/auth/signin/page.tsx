@@ -1,10 +1,21 @@
 import { Suspense } from "react";
 import SignInForm from "./form";
+import {  } from "@/components/glass";
+import GlassNav from "@/components/glass/GlassNav";
 
 export default function SignInPage() {
   return (
-    <Suspense fallback={<main className="mx-auto max-w-md px-6 py-24">Loading…</main>}>
-      <SignInForm />
-    </Suspense>
+    <>
+      <GlassNav />
+      <Suspense
+        fallback={
+          <main style={{ maxWidth: "480px", margin: "0 auto", padding: "5rem 1.5rem", color: "var(--glass-text)" }}>
+            Loading…
+          </main>
+        }
+      >
+        <SignInForm />
+      </Suspense>
+    </>
   );
 }

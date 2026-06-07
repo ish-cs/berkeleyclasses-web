@@ -1,26 +1,143 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Typography */
+  --font-display: "SF Pro Display", -apple-system, BlinkMacSystemFont, "Inter Display", "Inter", system-ui, sans-serif;
+  --font-text: "SF Pro Text", -apple-system, BlinkMacSystemFont, "Inter", system-ui, sans-serif;
+  --font-mono-sf: "SF Mono", ui-monospace, "Geist Mono", "Cascadia Code", Menlo, Consolas, monospace;
+  --tracking-display: -0.025em;
+  --tracking-text: -0.01em;
+
+  /* Mesh background (Berkeley blue + gold + deep purple, drifts over 32s) */
+  --mesh-base: #06080f;
+  --mesh-blue: #12325a;
+  --mesh-blue-deep: #003262;
+  --mesh-purple: #241d3e;
+  --mesh-gold: #2e2606;
+  --mesh-ink: #04050a;
+  --mesh-drift: 32s;
+
+  /* Frosted-glass surfaces (3 elevations) */
+  --glass-1: rgba(255, 255, 255, 0.055);
+  --glass-2: rgba(255, 255, 255, 0.085);
+  --glass-3: rgba(255, 255, 255, 0.130);
+  --glass-hover: rgba(255, 255, 255, 0.165);
+  --glass-active: rgba(255, 255, 255, 0.22);
+  --glass-border: rgba(255, 255, 255, 0.14);
+  --glass-border-strong: rgba(255, 255, 255, 0.26);
+  --glass-blur: 24px;
+  --glass-blur-strong: 40px;
+  --glass-saturate: 1.7;
+  --glass-edge:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.35),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.08),
+    inset 0 -10px 24px -12px rgba(0, 0, 0, 0.5);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.45), 0 2px 6px rgba(0, 0, 0, 0.3);
+  --glass-shadow-lg: 0 24px 70px rgba(0, 0, 0, 0.55), 0 6px 16px rgba(0, 0, 0, 0.4);
+  --glass-glow-blue: 0 0 0 1px rgba(74, 144, 217, 0.25), 0 8px 28px -6px rgba(74, 144, 217, 0.35);
+  --glass-specular: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.45) 0%,
+    rgba(255, 255, 255, 0.06) 35%,
+    rgba(255, 255, 255, 0) 60%
+  );
+  --glass-text: rgba(255, 255, 255, 0.96);
+  --glass-text-muted: rgba(255, 255, 255, 0.64);
+  --glass-text-faint: rgba(255, 255, 255, 0.42);
+  --glass-text-on-light: rgba(20, 22, 30, 0.92);
+
+  /* Status capsules (open seats, conflict, warn, closed) */
+  --cap-open-fill: rgba(48, 209, 123, 0.20);
+  --cap-open-border: rgba(48, 209, 123, 0.45);
+  --cap-open-text: #5ff0a8;
+  --cap-open-glow: 0 0 20px -4px rgba(48, 209, 123, 0.5);
+  --cap-closed-fill: rgba(255, 255, 255, 0.10);
+  --cap-closed-border: rgba(255, 255, 255, 0.18);
+  --cap-closed-text: rgba(255, 255, 255, 0.55);
+  --cap-conflict-fill: rgba(255, 99, 99, 0.20);
+  --cap-conflict-border: rgba(255, 99, 99, 0.5);
+  --cap-conflict-text: #ff9b9b;
+  --cap-conflict-glow: 0 0 22px -4px rgba(255, 99, 99, 0.55);
+  --cap-warn-fill: rgba(253, 181, 21, 0.18);
+  --cap-warn-border: rgba(253, 181, 21, 0.45);
+  --cap-warn-text: #ffd56b;
+
+  /* Radii */
+  --r-glass-sm: 14px;
+  --r-glass-md: 22px;
+  --r-glass-lg: 28px;
+  --r-glass-xl: 36px;
+  --r-pill: 9999px;
+
+  /* Subject accent palette (used for card tints) */
+  --subj-1: #4a90d9;
+  --subj-2: #c792ea;
+  --subj-3: #5ff0a8;
+  --subj-4: #fdb515;
+  --subj-5: #ff9b9b;
+  --subj-6: #7fd3e8;
+
+  /* Motion */
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --spring-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-fast: 200ms;
+  --dur: 380ms;
+  --dur-slow: 640ms;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-text);
+  --font-mono: var(--font-mono-sf);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+html,
+body {
+  background: var(--mesh-base);
+  color: var(--glass-text);
+  font-family: var(--font-text);
+  letter-spacing: var(--tracking-text);
+  -webkit-font-smoothing: antialiased;
+}
+
+@keyframes meshDrift {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(4%, -3%) scale(1.08);
+  }
+  66% {
+    transform: translate(-3%, 4%) scale(1.04);
+  }
+  100% {
+    transform: translate(0, 0) scale(1);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@keyframes meshDrift2 {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(-5%, 3%) scale(1.12);
+  }
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Native form controls inherit glass styling where the components don't override */
+select option {
+  background: #0d1320;
+  color: var(--glass-text);
 }

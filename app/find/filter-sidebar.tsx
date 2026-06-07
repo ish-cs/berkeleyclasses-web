@@ -1,8 +1,9 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition, type CSSProperties, type ReactNode } from "react";
 import type { TermGroup } from "@/lib/terms";
+import { GlassCard, GlassInput, GlassPill, GlassSelect } from "@/components/glass";
 
 type Subject = { subject_id: string; name: string };
 type ReqOption = { code: string; description: string };
@@ -32,6 +33,16 @@ const DAYS = [
 const TYPES = ["LEC", "DIS", "LAB", "SEM", "STD"];
 const UNIT_OPTIONS = ["1", "2", "3", "4", "5"];
 
+const LABEL: CSSProperties = {
+  fontFamily: "var(--font-text)",
+  fontSize: "0.7rem",
+  textTransform: "uppercase",
+  letterSpacing: "0.08em",
+  color: "var(--glass-text-faint)",
+  marginBottom: "0.55rem",
+  display: "block",
+};
+
 export default function FilterSidebar({
   termGroups,
   subjects,
@@ -50,7 +61,6 @@ export default function FilterSidebar({
   const [instructorLocal, setInstructorLocal] = useState(current.instructor);
   const [open, setOpen] = useState(false);
 
-  // Sync local inputs when nav changes URL externally
   useEffect(() => setQLocal(current.q), [current.q]);
   useEffect(() => setInstructorLocal(current.instructor), [current.instructor]);
 
@@ -65,7 +75,6 @@ export default function FilterSidebar({
     [router, sp],
   );
 
-  // Debounce free-text inputs into URL
   useEffect(() => {
     const t = setTimeout(() => {
       if (qLocal === current.q) return;
@@ -116,57 +125,95 @@ export default function FilterSidebar({
   const activeCount = countActive(current);
 
   return (
-    <div className={`rounded-lg border border-zinc-900 ${isPending ? "opacity-70" : ""} transition-opacity`}>
-      <div className="border-b border-zinc-900 px-4 py-3 flex items-center justify-between">
+    <GlassCard
+      elevation={1}
+      radius="lg"
+      padding={0}
+      specular={false}
+      style={{ opacity: isPending ? 0.7 : 1, transition: "opacity var(--dur) var(--spring-soft)" }}
+    >
+      <div
+        style={{
+          padding: "0.85rem 1rem",
+          borderBottom: "1px solid var(--glass-border)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          className="flex items-center gap-2 text-sm font-semibold lg:cursor-default"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "0.5rem",
+            background: "transparent",
+            border: "none",
+            color: "var(--glass-text)",
+            fontFamily: "var(--font-text)",
+            fontSize: "0.875rem",
+            fontWeight: 600,
+            cursor: "pointer",
+            padding: 0,
+          }}
           aria-expanded={open}
         >
           <span>Filters</span>
           {activeCount > 0 && (
-            <span className="rounded-full bg-zinc-800 text-zinc-200 text-[10px] font-mono px-1.5 py-0.5">
+            <span
+              style={{
+                background: "var(--glass-2)",
+                color: "var(--glass-text)",
+                fontFamily: "var(--font-mono-sf)",
+                fontSize: "0.625rem",
+                padding: "0.1rem 0.4rem",
+                borderRadius: "9999px",
+                border: "1px solid var(--glass-border)",
+              }}
+            >
               {activeCount}
             </span>
           )}
-          <svg
-            width="12" height="12" viewBox="0 0 12 12" fill="none"
-            className={"lg:hidden transition-transform " + (open ? "rotate-180" : "")}
-          >
-            <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
         </button>
         <button
           type="button"
           onClick={resetAll}
-          className="text-xs text-zinc-500 hover:text-zinc-300"
+          style={{
+            background: "transparent",
+            border: "none",
+            cursor: "pointer",
+            color: "var(--glass-text-faint)",
+            fontSize: "0.75rem",
+            fontFamily: "var(--font-text)",
+          }}
         >
           Reset
         </button>
       </div>
 
       <div
-        className={`p-4 space-y-5 lg:max-h-[calc(100vh-9rem)] lg:overflow-y-auto ${
-          open ? "" : "hidden lg:block"
-        }`}
+        style={{
+          padding: "1rem",
+          display: open ? "flex" : undefined,
+          flexDirection: "column",
+          gap: "1.1rem",
+          maxHeight: "calc(100vh - 11rem)",
+          overflowY: "auto",
+        }}
+        className="bc-filter-body"
       >
-        <FilterBlock label="Search">
-          <input
+        <Block label="Search">
+          <GlassInput
             type="text"
             placeholder="Course, title, description"
             value={qLocal}
             onChange={(e) => setQLocal(e.target.value)}
-            className="w-full rounded-md bg-zinc-900 border border-zinc-800 px-3 py-2 text-sm outline-none focus:border-zinc-500"
           />
-        </FilterBlock>
+        </Block>
 
-        <FilterBlock label="Term">
-          <select
-            value={current.term}
-            onChange={(e) => setOne("term", e.target.value)}
-            className="w-full rounded-md bg-zinc-900 border border-zinc-800 px-3 py-2 text-sm outline-none focus:border-zinc-500"
-          >
+        <Block label="Term">
+          <GlassSelect value={current.term} onChange={(e) => setOne("term", e.target.value)}>
             {termGroups.map((g) =>
               g.kind === "single" ? (
                 <option key={g.term.term_id} value={g.term.name}>
@@ -183,58 +230,58 @@ export default function FilterSidebar({
                 </optgroup>
               ),
             )}
-          </select>
-        </FilterBlock>
+          </GlassSelect>
+        </Block>
 
-        <FilterBlock label="Subject">
-          <select
-            value={current.subject}
-            onChange={(e) => setOne("subject", e.target.value)}
-            className="w-full rounded-md bg-zinc-900 border border-zinc-800 px-3 py-2 text-sm outline-none focus:border-zinc-500"
-          >
+        <Block label="Subject">
+          <GlassSelect value={current.subject} onChange={(e) => setOne("subject", e.target.value)}>
             <option value="">All subjects</option>
             {subjects.map((s) => (
               <option key={s.subject_id} value={s.name}>
                 {s.name}
               </option>
             ))}
-          </select>
-        </FilterBlock>
+          </GlassSelect>
+        </Block>
 
-        <FilterBlock label="Availability">
-          <label className="flex items-center gap-2 text-sm text-zinc-300">
+        <Block label="Availability">
+          <label
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "0.55rem",
+              fontFamily: "var(--font-text)",
+              fontSize: "0.875rem",
+              color: "var(--glass-text)",
+              cursor: "pointer",
+            }}
+          >
             <input
               type="checkbox"
               checked={current.openOnly}
               onChange={(e) => setOne("open", e.target.checked ? "1" : "")}
-              className="accent-white"
+              style={{ accentColor: "#4a90d9" }}
             />
             Open seats only
           </label>
-        </FilterBlock>
+        </Block>
 
-        <FilterBlock label="Mode">
-          <div className="grid grid-cols-3 gap-1">
-            <PillButton active={!current.mode} onClick={() => setOne("mode", "")}>
+        <Block label="Mode">
+          <PillRow>
+            <GlassPill active={!current.mode} onClick={() => setOne("mode", "")}>
               Any
-            </PillButton>
-            <PillButton
-              active={current.mode === "in-person"}
-              onClick={() => setOne("mode", "in-person")}
-            >
+            </GlassPill>
+            <GlassPill active={current.mode === "in-person"} onClick={() => setOne("mode", "in-person")}>
               In-person
-            </PillButton>
-            <PillButton
-              active={current.mode === "online"}
-              onClick={() => setOne("mode", "online")}
-            >
+            </GlassPill>
+            <GlassPill active={current.mode === "online"} onClick={() => setOne("mode", "online")}>
               Online
-            </PillButton>
-          </div>
-        </FilterBlock>
+            </GlassPill>
+          </PillRow>
+        </Block>
 
         {reqOptions.length > 0 && (
-          <FilterBlock label="Requirement">
+          <Block label="Requirement">
             <MultiSelect
               options={reqOptions.map((o) => ({ value: o.code, label: o.code, hint: o.description }))}
               selected={current.reqs}
@@ -242,83 +289,96 @@ export default function FilterSidebar({
               onClear={() => clearMulti("reqs")}
               placeholder="Any requirement"
             />
-          </FilterBlock>
+          </Block>
         )}
 
-        <FilterBlock label="Course level">
-          <div className="grid grid-cols-4 gap-1">
-            <PillButton active={!current.level} onClick={() => setOne("level", "")}>
+        <Block label="Course level">
+          <PillRow>
+            <GlassPill active={!current.level} onClick={() => setOne("level", "")}>
               Any
-            </PillButton>
-            <PillButton active={current.level === "lower"} onClick={() => setOne("level", "lower")}>
+            </GlassPill>
+            <GlassPill active={current.level === "lower"} onClick={() => setOne("level", "lower")}>
               Lower
-            </PillButton>
-            <PillButton active={current.level === "upper"} onClick={() => setOne("level", "upper")}>
+            </GlassPill>
+            <GlassPill active={current.level === "upper"} onClick={() => setOne("level", "upper")}>
               Upper
-            </PillButton>
-            <PillButton active={current.level === "grad"} onClick={() => setOne("level", "grad")}>
+            </GlassPill>
+            <GlassPill active={current.level === "grad"} onClick={() => setOne("level", "grad")}>
               Grad
-            </PillButton>
-          </div>
-        </FilterBlock>
+            </GlassPill>
+          </PillRow>
+        </Block>
 
-        <FilterBlock label="Days">
-          <div className="flex flex-wrap gap-1">
+        <Block label="Days">
+          <PillRow>
             {DAYS.map((d) => (
-              <PillButton
+              <GlassPill
                 key={d.code}
                 active={current.days.includes(d.code)}
                 onClick={() => toggleMulti("days", d.code, current.days)}
               >
                 {d.label}
-              </PillButton>
+              </GlassPill>
             ))}
-          </div>
-        </FilterBlock>
+          </PillRow>
+        </Block>
 
-        <FilterBlock label="Type">
-          <div className="flex flex-wrap gap-1">
+        <Block label="Type">
+          <PillRow>
             {TYPES.map((t) => (
-              <PillButton
+              <GlassPill
                 key={t}
                 active={current.types.includes(t)}
                 onClick={() => toggleMulti("type", t, current.types)}
               >
                 {t}
-              </PillButton>
+              </GlassPill>
             ))}
-          </div>
-        </FilterBlock>
+          </PillRow>
+        </Block>
 
-        <FilterBlock label="Units">
-          <div className="flex flex-wrap gap-1">
-            <PillButton active={!current.units} onClick={() => setOne("units", "")}>
+        <Block label="Units">
+          <PillRow>
+            <GlassPill active={!current.units} onClick={() => setOne("units", "")}>
               Any
-            </PillButton>
+            </GlassPill>
             {UNIT_OPTIONS.map((u) => (
-              <PillButton
-                key={u}
-                active={current.units === u}
-                onClick={() => setOne("units", u)}
-              >
+              <GlassPill key={u} active={current.units === u} onClick={() => setOne("units", u)}>
                 {u}
-              </PillButton>
+              </GlassPill>
             ))}
-          </div>
-        </FilterBlock>
+          </PillRow>
+        </Block>
 
-        <FilterBlock label="Instructor">
-          <input
+        <Block label="Instructor">
+          <GlassInput
             type="text"
             placeholder="DeNero"
             value={instructorLocal}
             onChange={(e) => setInstructorLocal(e.target.value)}
-            className="w-full rounded-md bg-zinc-900 border border-zinc-800 px-3 py-2 text-sm outline-none focus:border-zinc-500"
           />
-        </FilterBlock>
+        </Block>
       </div>
+      <style>{`
+        @media (max-width: 1024px) {
+          .bc-filter-body { display: ${open ? "flex" : "none"} !important; max-height: none !important; }
+        }
+      `}</style>
+    </GlassCard>
+  );
+}
+
+function Block({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div>
+      <span style={LABEL}>{label}</span>
+      {children}
     </div>
   );
+}
+
+function PillRow({ children }: { children: ReactNode }) {
+  return <div style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem" }}>{children}</div>;
 }
 
 function countActive(c: CurrentFilters): number {
@@ -334,40 +394,6 @@ function countActive(c: CurrentFilters): number {
   if (c.units) n++;
   if (c.instructor) n++;
   return n;
-}
-
-function FilterBlock({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <p className="text-xs uppercase tracking-wider text-zinc-500 mb-2">{label}</p>
-      {children}
-    </div>
-  );
-}
-
-function PillButton({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={
-        "rounded-md px-2.5 py-1 text-xs font-medium transition-colors " +
-        (active
-          ? "bg-white text-black border border-white"
-          : "bg-zinc-900 border border-zinc-800 text-zinc-300 hover:border-zinc-600")
-      }
-    >
-      {children}
-    </button>
-  );
 }
 
 type MultiSelectOption = { value: string; label: string; hint?: string };
@@ -390,17 +416,17 @@ function MultiSelect({
 
   useEffect(() => {
     if (!open) return;
-    function handleDocClick(e: MouseEvent) {
+    function onDoc(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     }
-    function handleEsc(e: KeyboardEvent) {
+    function onEsc(e: KeyboardEvent) {
       if (e.key === "Escape") setOpen(false);
     }
-    document.addEventListener("mousedown", handleDocClick);
-    document.addEventListener("keydown", handleEsc);
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onEsc);
     return () => {
-      document.removeEventListener("mousedown", handleDocClick);
-      document.removeEventListener("keydown", handleEsc);
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onEsc);
     };
   }, [open]);
 
@@ -408,30 +434,68 @@ function MultiSelect({
     selected.length === 0
       ? placeholder
       : selected.length === 1
-      ? selected[0]
-      : `${selected.length} selected`;
+        ? selected[0]
+        : `${selected.length} selected`;
 
   return (
-    <div ref={ref}>
+    <div ref={ref} style={{ position: "relative" }}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="listbox"
         aria-expanded={open}
-        className="w-full flex items-center justify-between rounded-md bg-zinc-900 border border-zinc-800 px-3 py-2 text-sm text-left hover:border-zinc-600"
+        style={{
+          width: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          borderRadius: "var(--r-pill)",
+          background: "rgba(0,0,0,0.22)",
+          border: "1px solid var(--glass-border)",
+          padding: "0.55rem 1rem",
+          fontFamily: "var(--font-text)",
+          fontSize: "0.875rem",
+          color: selected.length === 0 ? "var(--glass-text-faint)" : "var(--glass-text)",
+          textAlign: "left",
+          cursor: "pointer",
+        }}
       >
-        <span className={selected.length === 0 ? "text-zinc-500" : "text-zinc-200 truncate"}>
-          {label}
-        </span>
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className="text-zinc-500 shrink-0 ml-2">
-          <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ marginLeft: "0.5rem", flexShrink: 0 }}>
+          <path
+            d="M2 4l4 4 4-4"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
         </svg>
       </button>
 
       {open && (
-        <div className="mt-1 rounded-md border border-zinc-800 bg-zinc-950 max-h-64 overflow-y-auto">
-          <div className="flex items-center justify-between border-b border-zinc-900 px-3 py-2">
-            <span className="text-[11px] uppercase tracking-wider text-zinc-500">
+        <div
+          style={{
+            marginTop: "0.4rem",
+            borderRadius: "var(--r-glass-sm)",
+            border: "1px solid var(--glass-border)",
+            background: "rgba(12, 16, 26, 0.85)",
+            backdropFilter: "blur(var(--glass-blur))",
+            WebkitBackdropFilter: "blur(var(--glass-blur))",
+            maxHeight: "16rem",
+            overflowY: "auto",
+            boxShadow: "var(--glass-edge), var(--glass-shadow)",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "0.55rem 0.85rem",
+              borderBottom: "1px solid var(--glass-border)",
+            }}
+          >
+            <span style={{ fontSize: "0.625rem", textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--glass-text-faint)" }}>
               {selected.length} selected
             </span>
             <button
@@ -440,12 +504,19 @@ function MultiSelect({
                 onClear();
                 setOpen(false);
               }}
-              className="text-xs text-zinc-500 hover:text-zinc-300"
+              style={{
+                background: "transparent",
+                border: "none",
+                cursor: "pointer",
+                color: "var(--glass-text-faint)",
+                fontSize: "0.7rem",
+                fontFamily: "var(--font-text)",
+              }}
             >
               Clear
             </button>
           </div>
-          <ul role="listbox" aria-multiselectable="true">
+          <ul style={{ margin: 0, padding: 0, listStyle: "none" }} role="listbox" aria-multiselectable="true">
             {options.map((o) => {
               const checked = selected.includes(o.value);
               return (
@@ -455,23 +526,41 @@ function MultiSelect({
                     role="option"
                     aria-selected={checked}
                     onClick={() => onToggle(o.value)}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-zinc-900 text-left"
+                    style={{
+                      width: "100%",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.55rem",
+                      padding: "0.55rem 0.85rem",
+                      background: "transparent",
+                      border: "none",
+                      cursor: "pointer",
+                      color: "var(--glass-text)",
+                      fontFamily: "var(--font-text)",
+                      fontSize: "0.875rem",
+                      textAlign: "left",
+                    }}
                   >
                     <span
-                      className={
-                        "inline-flex items-center justify-center w-4 h-4 rounded border " +
-                        (checked
-                          ? "bg-white border-white text-black"
-                          : "border-zinc-700 text-transparent")
-                      }
                       aria-hidden="true"
+                      style={{
+                        width: "16px",
+                        height: "16px",
+                        borderRadius: "4px",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        background: checked ? "#fff" : "transparent",
+                        border: `1px solid ${checked ? "#fff" : "var(--glass-border-strong)"}`,
+                        color: checked ? "#000" : "transparent",
+                      }}
                     >
                       <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
                         <path d="M2 5l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     </span>
-                    <span className="flex-1 text-zinc-200">{o.label}</span>
-                    {o.hint && <span className="text-[10px] text-zinc-500">{o.hint}</span>}
+                    <span style={{ flex: 1 }}>{o.label}</span>
+                    {o.hint && <span style={{ fontSize: "0.625rem", color: "var(--glass-text-faint)" }}>{o.hint}</span>}
                   </button>
                 </li>
               );

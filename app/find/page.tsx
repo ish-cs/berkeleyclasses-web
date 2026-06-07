@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import Nav from "@/components/nav";
+import {  GlassCard, SeatCapsule } from "@/components/glass";
+import GlassNav from "@/components/glass/GlassNav";
 import type { Section } from "@/lib/types";
+import { subjectAccent } from "@/lib/accent";
 import FilterSidebar from "./filter-sidebar";
 import SortSelect from "./sort-select";
 import { groupTermsByYear, resolveTermIds } from "@/lib/terms";
@@ -13,19 +15,28 @@ type SearchParams = {
   term?: string;
   subject?: string;
   open?: string;
-  mode?: string;          // in-person | online
-  level?: string;         // lower | upper | grad
-  type?: string;          // LEC | DIS | LAB (comma-separated)
-  days?: string;          // Mo,We,Fr etc. comma-separated
-  units?: string;         // exact match like "4" or "1-3"
+  mode?: string;
+  level?: string;
+  type?: string;
+  days?: string;
+  units?: string;
   instructor?: string;
-  req?: string;           // legacy single requirement (kept for old shareable links)
-  reqs?: string;          // comma-separated requirement names (OR semantics)
-  sort?: string;          // course_code_asc | course_code_desc | open_seats_desc | title_asc
+  req?: string;
+  reqs?: string;
+  sort?: string;
 };
 
 const DEFAULT_TERM = "Fall 2026";
 const RESULT_LIMIT = 300;
+
+const WRAP: React.CSSProperties = { maxWidth: "1240px", margin: "0 auto", padding: "0 1.5rem" };
+const display = (size: string, weight = 600): React.CSSProperties => ({
+  fontFamily: "var(--font-display)",
+  fontWeight: weight,
+  letterSpacing: "var(--tracking-display)",
+  fontSize: size,
+});
+const mono: React.CSSProperties = { fontFamily: "var(--font-mono-sf)" };
 
 export default async function FindPage({
   searchParams,
@@ -43,8 +54,6 @@ export default async function FindPage({
   const days = (params.days ?? "").split(",").filter(Boolean);
   const units = params.units?.trim() ?? "";
   const instructor = params.instructor?.trim() ?? "";
-  // `reqs` is the new multi-value param; fall back to legacy `req=` so older
-  // shareable links keep working.
   const reqs = (params.reqs ?? params.req ?? "")
     .split(",")
     .map((s) => s.trim())
@@ -56,14 +65,9 @@ export default async function FindPage({
   const [{ data: terms }, { data: subjects }, { data: reqRows }] = await Promise.all([
     supabase.from("terms").select("term_id, name"),
     supabase.from("subjects").select("subject_id, name").order("name"),
-    supabase
-      .from("course_meta")
-      .select("requirements")
-      .not("requirements", "is", null),
+    supabase.from("course_meta").select("requirements").not("requirements", "is", null),
   ]);
 
-  // Canonical order matches classes.berkeley.edu sidebar so the filter feels
-  // familiar to anyone coming from that page.
   const REQUIREMENT_ORDER = [
     "American Cultures",
     "American Hist & Institutions",
@@ -80,15 +84,14 @@ export default async function FindPage({
   ];
   const reqCounts = new Map<string, number>();
   for (const row of reqRows ?? []) {
-    const reqs = (row.requirements ?? []) as string[];
-    for (const r of reqs) reqCounts.set(r, (reqCounts.get(r) ?? 0) + 1);
+    const rs = (row.requirements ?? []) as string[];
+    for (const r of rs) reqCounts.set(r, (reqCounts.get(r) ?? 0) + 1);
   }
-  const reqOptions = REQUIREMENT_ORDER
-    .filter((name) => reqCounts.has(name))
-    .map((name) => ({ code: name, description: `${reqCounts.get(name)} courses` }));
+  const reqOptions = REQUIREMENT_ORDER.filter((name) => reqCounts.has(name)).map((name) => ({
+    code: name,
+    description: `${reqCounts.get(name)} courses`,
+  }));
 
-  // Resolve reqs → course_code IN-list. Multi-select means "any of these
-  // requirements satisfies", so we use overlaps (`&&`).
   let reqCourseCodes: string[] | null = null;
   if (reqs.length > 0) {
     const { data: codes } = await supabase
@@ -141,7 +144,6 @@ export default async function FindPage({
   const { data: rowsRaw, error } = await query;
   let rows: Section[] = (rowsRaw ?? []) as Section[];
 
-  // Client-side day filter (Supabase can't pattern-match arrays cleanly here)
   if (days.length > 0) {
     rows = rows.filter((r) => {
       if (!r.meeting_days) return false;
@@ -151,110 +153,187 @@ export default async function FindPage({
   }
 
   return (
-    <main className="min-h-screen bg-black text-white">
-      <Nav />
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 py-6 grid gap-6 lg:grid-cols-[280px_1fr]">
-        <aside className="lg:sticky lg:top-20 lg:self-start">
-          <FilterSidebar
-            termGroups={groupTermsByYear(allTerms)}
-            subjects={subjects ?? []}
-            reqOptions={reqOptions}
-            current={{
-              q,
-              term: termName,
-              subject,
-              openOnly,
-              mode,
-              level,
-              types,
-              days,
-              units,
-              instructor,
-              reqs,
-              sort,
-            }}
-          />
-        </aside>
+    <>
+      <GlassNav />
+      <main style={{ ...WRAP, padding: "2rem 1.5rem 4rem" }}>
+        <div
+          style={{
+            display: "grid",
+            gap: "1.5rem",
+            gridTemplateColumns: "minmax(0, 280px) minmax(0, 1fr)",
+          }}
+          className="bc-find-layout"
+        >
+          <aside style={{ position: "sticky", top: "5.25rem", alignSelf: "flex-start" }}>
+            <FilterSidebar
+              termGroups={groupTermsByYear(allTerms)}
+              subjects={subjects ?? []}
+              reqOptions={reqOptions}
+              current={{
+                q,
+                term: termName,
+                subject,
+                openOnly,
+                mode,
+                level,
+                types,
+                days,
+                units,
+                instructor,
+                reqs,
+                sort,
+              }}
+            />
+          </aside>
 
-        <section>
-          <div className="flex flex-wrap items-end justify-between gap-3 mb-4">
-            <div>
-              <h1 className="text-2xl font-semibold">Search</h1>
-              <p className="text-sm text-zinc-500">
-                {rows.length === RESULT_LIMIT
-                  ? `Showing first ${RESULT_LIMIT} results — refine to narrow down`
-                  : `${rows.length} result${rows.length === 1 ? "" : "s"}`}{" "}
-                · term {termName}
-              </p>
+          <section>
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                alignItems: "flex-end",
+                justifyContent: "space-between",
+                gap: "0.75rem",
+                marginBottom: "1.25rem",
+              }}
+            >
+              <div>
+                <h1 style={{ margin: 0, ...display("1.75rem"), color: "var(--glass-text)" }}>Search</h1>
+                <p
+                  style={{
+                    margin: "0.35rem 0 0",
+                    fontFamily: "var(--font-text)",
+                    fontSize: "0.875rem",
+                    color: "var(--glass-text-faint)",
+                  }}
+                >
+                  {rows.length === RESULT_LIMIT
+                    ? `Showing first ${RESULT_LIMIT} results — refine to narrow down`
+                    : `${rows.length} result${rows.length === 1 ? "" : "s"}`}
+                  {" · "}term {termName}
+                </p>
+              </div>
+              <SortSelect current={sort} />
             </div>
-            <SortSelect current={sort} />
-          </div>
 
-          {error && (
-            <p className="rounded-md border border-red-900 bg-red-950 px-4 py-2 text-sm text-red-300 mb-4">
-              {error.message}
-            </p>
-          )}
+            {error && (
+              <div style={{ marginBottom: "1rem" }}>
+                <GlassCard elevation={1} radius="sm" padding="0.75rem 1rem" specular={false}>
+                  <p style={{ margin: 0, color: "var(--cap-conflict-text)" }}>{error.message}</p>
+                </GlassCard>
+              </div>
+            )}
 
-          {rows.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-zinc-800 px-6 py-16 text-center">
-              <p className="text-zinc-300 mb-1">No sections match these filters.</p>
-              <p className="text-sm text-zinc-500">
-                Try removing a filter or pick another term.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {rows.map((s) => (
-                <SectionCard key={s.ccn} s={s} />
-              ))}
-            </div>
-          )}
-        </section>
-      </div>
-    </main>
+            {rows.length === 0 ? (
+              <GlassCard elevation={1} radius="lg" padding="3rem 1.5rem" specular={false}>
+                <p style={{ margin: 0, color: "var(--glass-text)", textAlign: "center" }}>
+                  No sections match these filters.
+                </p>
+                <p
+                  style={{
+                    margin: "0.5rem 0 0",
+                    fontSize: "0.875rem",
+                    color: "var(--glass-text-faint)",
+                    textAlign: "center",
+                  }}
+                >
+                  Try removing a filter or pick another term.
+                </p>
+              </GlassCard>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.85rem" }}>
+                {rows.map((s) => (
+                  <SectionCard key={s.ccn} s={s} />
+                ))}
+              </div>
+            )}
+          </section>
+        </div>
+      </main>
+      <style>{`
+        @media (max-width: 1024px) {
+          .bc-find-layout { grid-template-columns: 1fr !important; }
+          .bc-find-layout > aside { position: static !important; }
+        }
+      `}</style>
+    </>
   );
 }
 
 function SectionCard({ s }: { s: Section }) {
   const courseLine = [s.course_code, s.section_type, s.section_number].filter(Boolean).join(" ");
+  const meta = [
+    s.meeting_days,
+    s.meeting_time,
+    s.location,
+    s.units ? `${s.units} units` : null,
+    s.instruction_mode,
+  ].filter(Boolean) as string[];
   return (
-    <Link
-      href={`/class/${s.ccn}`}
-      className="block rounded-lg border border-zinc-900 hover:border-zinc-700 bg-zinc-950/50 hover:bg-zinc-950 transition-colors px-5 py-4"
-    >
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <p className="text-xs text-zinc-500 mb-1">
-            CCN {s.ccn} · {s.subject_name ?? "—"}
-          </p>
-          <h2 className="font-semibold text-lg leading-tight">{courseLine}</h2>
-          <p className="text-zinc-300 mt-0.5 truncate">{s.title}</p>
-          <p className="text-sm text-zinc-500 mt-1 truncate">{s.instructors ?? "Staff"}</p>
-          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-zinc-400">
-            {s.meeting_days && <span>{s.meeting_days}</span>}
-            {s.meeting_time && <span>{s.meeting_time}</span>}
-            {s.location && <span className="text-zinc-500">{s.location}</span>}
-            {s.units && <span className="text-zinc-500">{s.units} units</span>}
-            {s.instruction_mode && (
-              <span className="text-zinc-500">{s.instruction_mode}</span>
-            )}
+    <Link href={`/class/${s.ccn}`} style={{ textDecoration: "none", color: "inherit" }}>
+      <GlassCard
+        interactive
+        elevation={1}
+        radius="md"
+        tint={subjectAccent(s.subject_name)}
+        padding="1.05rem 1.25rem"
+      >
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "1rem" }}>
+          <div style={{ minWidth: 0 }}>
+            <p
+              style={{
+                margin: "0 0 0.3rem",
+                ...mono,
+                fontSize: "0.75rem",
+                color: "var(--glass-text-faint)",
+              }}
+            >
+              CCN {s.ccn} · {s.subject_name ?? "—"}
+            </p>
+            <h3 style={{ margin: 0, ...display("1.15rem"), color: "var(--glass-text)" }}>{courseLine}</h3>
+            <p
+              style={{
+                margin: "0.15rem 0 0",
+                fontFamily: "var(--font-text)",
+                color: "var(--glass-text)",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {s.title}
+            </p>
+            <p
+              style={{
+                margin: "0.3rem 0 0",
+                fontFamily: "var(--font-text)",
+                fontSize: "0.875rem",
+                color: "var(--glass-text-faint)",
+              }}
+            >
+              {s.instructors ?? "Staff"}
+            </p>
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: "0.3rem 1rem",
+                marginTop: "0.6rem",
+                fontSize: "0.875rem",
+                color: "var(--glass-text-muted)",
+                fontFamily: "var(--font-text)",
+              }}
+            >
+              {meta.map((m, j) => (
+                <span key={j} style={j > 1 ? { color: "var(--glass-text-faint)" } : undefined}>
+                  {m}
+                </span>
+              ))}
+            </div>
           </div>
+          <SeatCapsule seats={s.open_seats ?? 0} />
         </div>
-        <div className="text-right shrink-0">
-          <div
-            className={
-              "inline-block rounded-md px-2.5 py-1 font-mono text-sm " +
-              (s.open_seats > 0
-                ? "bg-green-950 text-green-300 border border-green-900"
-                : "bg-zinc-900 text-zinc-500 border border-zinc-800")
-            }
-          >
-            {s.open_seats}
-          </div>
-          <p className="text-[10px] uppercase tracking-wide text-zinc-500 mt-1">open</p>
-        </div>
-      </div>
+      </GlassCard>
     </Link>
   );
 }

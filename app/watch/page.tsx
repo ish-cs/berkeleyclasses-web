@@ -1,12 +1,23 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import Nav from "@/components/nav";
+import {  GlassCard } from "@/components/glass";
+import GlassNav from "@/components/glass/GlassNav";
 import WatchForm from "./watch-form";
 import UnsubscribeButton from "./unsubscribe-button";
 import type { Section } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
+
+const WRAP: React.CSSProperties = { maxWidth: "780px", margin: "0 auto", padding: "1.75rem 1.5rem 4rem" };
+const display = (size: string, weight = 600): React.CSSProperties => ({
+  fontFamily: "var(--font-display)",
+  fontWeight: weight,
+  letterSpacing: "var(--tracking-display)",
+  fontSize: size,
+});
+const text: React.CSSProperties = { fontFamily: "var(--font-text)", color: "var(--glass-text-muted)" };
+const mono: React.CSSProperties = { fontFamily: "var(--font-mono-sf)" };
 
 export default async function WatchPage({
   searchParams,
@@ -38,58 +49,80 @@ export default async function WatchPage({
   const preselectCcn = ccn ? parseInt(ccn, 10) : null;
 
   return (
-    <main className="min-h-screen bg-black text-white">
-      <Nav />
-      <section className="mx-auto max-w-3xl px-6 py-10">
-        <h1 className="text-3xl font-semibold mb-2">Waitlist watcher</h1>
-        <p className="text-zinc-500 mb-8">
+    <>
+      <GlassNav />
+      <section style={WRAP}>
+        <h1 style={{ margin: 0, ...display("2rem"), color: "var(--glass-text)" }}>Waitlist watcher</h1>
+        <p style={{ margin: "0.4rem 0 2rem", ...text }}>
           Get an email when a section opens up or the waitlist shrinks. Powered by hourly snapshots.
         </p>
 
         <WatchForm initialCcn={preselectCcn ?? undefined} userEmail={user.email ?? ""} />
 
-        <h2 className="text-lg font-semibold mt-12 mb-4">Your watched sections</h2>
+        <h2 style={{ margin: "2.5rem 0 1rem", ...display("1.25rem"), color: "var(--glass-text)" }}>
+          Your watched sections
+        </h2>
 
         {subs.length === 0 ? (
-          <p className="text-zinc-500">No active watches yet. Add a CCN above.</p>
+          <p style={{ ...text }}>No active watches yet. Add a CCN above.</p>
         ) : (
-          <ul className="divide-y divide-zinc-900 rounded-lg border border-zinc-900">
-            {subs.map((sub) => {
+          <GlassCard elevation={1} radius="lg" padding={0}>
+            {subs.map((sub, i) => {
               const s = sectionsByCcn.get(sub.ccn);
               return (
-                <li key={sub.id} className="px-4 py-3 flex items-center justify-between gap-4">
-                  <div className="min-w-0">
+                <div
+                  key={sub.id}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: "1rem",
+                    padding: "0.85rem 1rem",
+                    borderTop: i === 0 ? "none" : "1px solid var(--glass-border)",
+                  }}
+                >
+                  <div style={{ minWidth: 0 }}>
                     <Link
                       href={`/class/${sub.ccn}`}
-                      className="font-mono text-sm text-zinc-300 hover:text-white"
+                      style={{ ...mono, fontSize: "0.875rem", color: "var(--glass-text)", textDecoration: "none" }}
                     >
                       {sub.ccn}
                     </Link>{" "}
-                    <span className="text-zinc-200">
+                    <span style={{ color: "var(--glass-text)", fontFamily: "var(--font-text)" }}>
                       {s ? `${s.course_code} ${s.section_type} ${s.section_number}` : "(not synced)"}
                     </span>
-                    <p className="text-xs text-zinc-500 truncate">
+                    <p
+                      style={{
+                        margin: "0.25rem 0 0",
+                        fontSize: "0.75rem",
+                        color: "var(--glass-text-faint)",
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                    >
                       {s?.title ?? ""}
                       {s ? ` · ${s.meeting_days ?? ""} ${s.meeting_time ?? ""}` : ""}
                     </p>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.85rem" }}>
                     <span
-                      className={
-                        "text-sm font-mono " +
-                        (s && s.open_seats > 0 ? "text-green-400" : "text-zinc-500")
-                      }
+                      style={{
+                        ...mono,
+                        fontSize: "0.875rem",
+                        color: s && s.open_seats > 0 ? "var(--cap-open-text)" : "var(--glass-text-faint)",
+                      }}
                     >
                       {s?.open_seats ?? "—"} open
                     </span>
                     <UnsubscribeButton id={sub.id} />
                   </div>
-                </li>
+                </div>
               );
             })}
-          </ul>
+          </GlassCard>
         )}
       </section>
-    </main>
+    </>
   );
 }

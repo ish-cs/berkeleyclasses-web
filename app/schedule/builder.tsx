@@ -6,8 +6,27 @@ import type { Section } from "@/lib/types";
 import { sectionsConflict } from "@/lib/format";
 import type { TermGroup } from "@/lib/terms";
 import ScheduleGrid from "@/components/schedule-grid";
+import { GlassCard, GlassButton, GlassInput, GlassSelect } from "@/components/glass";
 
 const DEFAULT_TERM_NAME = "Fall 2026";
+
+const display = (size: string, weight = 600): React.CSSProperties => ({
+  fontFamily: "var(--font-display)",
+  fontWeight: weight,
+  letterSpacing: "var(--tracking-display)",
+  fontSize: size,
+});
+const text: React.CSSProperties = { fontFamily: "var(--font-text)", color: "var(--glass-text-muted)" };
+const mono: React.CSSProperties = { fontFamily: "var(--font-mono-sf)" };
+const LABEL: React.CSSProperties = {
+  display: "block",
+  fontFamily: "var(--font-text)",
+  fontSize: "0.7rem",
+  textTransform: "uppercase",
+  letterSpacing: "0.08em",
+  color: "var(--glass-text-faint)",
+  marginBottom: "0.4rem",
+};
 
 function flattenTerms(groups: TermGroup[]): { term_id: string; name: string }[] {
   const out: { term_id: string; name: string }[] = [];
@@ -71,8 +90,7 @@ export default function ScheduleBuilder({ termGroups }: { termGroups: TermGroup[
       setCombos([]);
       return;
     }
-    const found = enumerateValid(lists, 5);
-    setCombos(found);
+    setCombos(enumerateValid(lists, 5));
   }, [sectionsByCourse, wishlist]);
 
   function addCourse() {
@@ -93,7 +111,9 @@ export default function ScheduleBuilder({ termGroups }: { termGroups: TermGroup[
     setSaving(true);
     setSaveMsg(null);
     const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) {
       window.location.href = `/auth/signin?next=${encodeURIComponent("/schedule")}`;
       return;
@@ -111,156 +131,176 @@ export default function ScheduleBuilder({ termGroups }: { termGroups: TermGroup[
   }
 
   const courseSummary = useMemo(
-    () =>
-      wishlist.map((c) => ({
-        course: c,
-        count: sectionsByCourse[c]?.length ?? 0,
-      })),
+    () => wishlist.map((c) => ({ course: c, count: sectionsByCourse[c]?.length ?? 0 })),
     [wishlist, sectionsByCourse],
   );
 
   return (
     <div>
-      <div className="flex flex-wrap gap-3 items-end mb-6">
-        <div>
-          <label className="block text-xs text-zinc-500 mb-1">Term</label>
-          <select
-            value={termId}
-            onChange={(e) => setTermId(e.target.value)}
-            className="rounded-md bg-zinc-900 border border-zinc-800 px-3 py-2 outline-none focus:border-zinc-500"
-          >
-            {termGroups.map((g) =>
-              g.kind === "single" ? (
-                <option key={g.term.term_id} value={g.term.term_id}>
-                  {g.term.name}
-                </option>
-              ) : (
-                <optgroup key={g.parent.term_id} label={g.parent.name}>
-                  <option value={g.parent.term_id}>{g.parent.name}</option>
-                  {g.children.map((c) => (
-                    <option key={c.term_id} value={c.term_id}>
-                      &nbsp;&nbsp;{c.name}
-                    </option>
-                  ))}
-                </optgroup>
-              ),
-            )}
-          </select>
+      <GlassCard elevation={1} radius="lg" padding="1.25rem 1.25rem 1.4rem" style={{ marginBottom: "1.5rem" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.85rem", alignItems: "flex-end" }}>
+          <div style={{ minWidth: "180px" }}>
+            <span style={LABEL}>Term</span>
+            <GlassSelect value={termId} onChange={(e) => setTermId(e.target.value)}>
+              {termGroups.map((g) =>
+                g.kind === "single" ? (
+                  <option key={g.term.term_id} value={g.term.term_id}>
+                    {g.term.name}
+                  </option>
+                ) : (
+                  <optgroup key={g.parent.term_id} label={g.parent.name}>
+                    <option value={g.parent.term_id}>{g.parent.name}</option>
+                    {g.children.map((c) => (
+                      <option key={c.term_id} value={c.term_id}>
+                        &nbsp;&nbsp;{c.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                ),
+              )}
+            </GlassSelect>
+          </div>
+          <div style={{ flex: 1, minWidth: "260px" }}>
+            <span style={LABEL}>Add course (e.g. COMPSCI 61A)</span>
+            <div style={{ display: "flex", gap: "0.55rem" }}>
+              <GlassInput
+                type="text"
+                value={courseInput}
+                onChange={(e) => setCourseInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && addCourse()}
+                placeholder="COMPSCI 61A"
+              />
+              <GlassButton type="button" variant="primary" onClick={addCourse}>
+                Add
+              </GlassButton>
+            </div>
+          </div>
         </div>
-        <div className="flex-1 min-w-[260px]">
-          <label className="block text-xs text-zinc-500 mb-1">Add course (e.g. COMPSCI 61A)</label>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={courseInput}
-              onChange={(e) => setCourseInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && addCourse()}
-              placeholder="COMPSCI 61A"
-              className="flex-1 rounded-md bg-zinc-900 border border-zinc-800 px-3 py-2 outline-none focus:border-zinc-500"
-            />
-            <button
-              type="button"
-              onClick={addCourse}
-              className="rounded-md bg-white text-black px-4 py-2 font-medium hover:bg-zinc-200"
+
+        {wishlist.length > 0 && (
+          <div style={{ marginTop: "1.25rem" }}>
+            <p
+              style={{
+                fontSize: "0.625rem",
+                textTransform: "uppercase",
+                letterSpacing: "0.08em",
+                color: "var(--glass-text-faint)",
+                margin: "0 0 0.5rem",
+              }}
             >
-              Add
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {wishlist.length > 0 && (
-        <div className="mb-8">
-          <p className="text-xs text-zinc-500 mb-2">Wishlist ({wishlist.length})</p>
-          <div className="flex flex-wrap gap-2">
-            {courseSummary.map((cs) => (
-              <span
-                key={cs.course}
-                className="inline-flex items-center gap-2 rounded-md bg-zinc-900 border border-zinc-800 px-3 py-1.5 text-sm"
-              >
-                <span>{cs.course}</span>
-                <span className="text-zinc-500">{cs.count} sections</span>
-                <button
-                  type="button"
-                  onClick={() => removeCourse(cs.course)}
-                  className="text-zinc-500 hover:text-red-400"
-                  aria-label={`Remove ${cs.course}`}
+              Wishlist ({wishlist.length})
+            </p>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
+              {courseSummary.map((cs) => (
+                <span
+                  key={cs.course}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                    background: "var(--glass-1)",
+                    border: "1px solid var(--glass-border)",
+                    padding: "0.3rem 0.8rem",
+                    borderRadius: "var(--r-pill)",
+                    fontFamily: "var(--font-text)",
+                    fontSize: "0.8125rem",
+                    color: "var(--glass-text)",
+                  }}
                 >
-                  ×
-                </button>
-              </span>
-            ))}
+                  <span>{cs.course}</span>
+                  <span style={{ color: "var(--glass-text-faint)" }}>{cs.count} sec</span>
+                  <button
+                    type="button"
+                    onClick={() => removeCourse(cs.course)}
+                    aria-label={`Remove ${cs.course}`}
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      cursor: "pointer",
+                      color: "var(--glass-text-faint)",
+                      lineHeight: 1,
+                    }}
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
+      </GlassCard>
+
+      {error && (
+        <p style={{ color: "var(--cap-conflict-text)", marginBottom: "1rem", ...text }}>{error}</p>
+      )}
+      {loading && (
+        <p style={{ color: "var(--glass-text-faint)", marginBottom: "1rem", ...text }}>Loading sections…</p>
       )}
 
-      {error && <p className="text-red-400 text-sm mb-4">{error}</p>}
-      {loading && <p className="text-zinc-500 text-sm mb-4">Loading sections…</p>}
-
-      {!loading && wishlist.length > 0 && (
-        <>
-          {courseSummary
-            .filter((cs) => cs.count === 0 && sectionsByCourse[cs.course] !== undefined)
-            .map((cs) => (
-              <p key={cs.course} className="text-amber-300 text-sm mb-2">
-                No sections found for <span className="font-mono">{cs.course}</span> in this term —
-                check the spelling or term.
-              </p>
-            ))}
-        </>
-      )}
+      {!loading &&
+        courseSummary
+          .filter((cs) => cs.count === 0 && sectionsByCourse[cs.course] !== undefined)
+          .map((cs) => (
+            <p key={cs.course} style={{ color: "var(--cap-warn-text)", margin: "0.4rem 0", ...text, fontSize: "0.875rem" }}>
+              No sections found for <span style={mono}>{cs.course}</span> in this term — check the spelling or term.
+            </p>
+          ))}
 
       {wishlist.length > 0 && !loading && (
-        <div className="space-y-6">
-          <h2 className="text-xl font-semibold">
-            {combos.length === 0
-              ? "No conflict-free combinations"
-              : `${combos.length} conflict-free option${combos.length === 1 ? "" : "s"}`}
+        <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+          <h2 style={{ margin: 0, ...display("1.35rem"), color: "var(--glass-text)" }}>
+            {combos.length === 0 ? "No conflict-free combinations" : `${combos.length} conflict-free option${combos.length === 1 ? "" : "s"}`}
           </h2>
-          {saveMsg && <p className="text-sm text-zinc-300">{saveMsg}</p>}
+          {saveMsg && <p style={{ color: "var(--glass-text)", margin: 0, ...text, fontSize: "0.875rem" }}>{saveMsg}</p>}
           {combos.map((combo, i) => {
             const ccns = combo.map((s) => s.ccn).join(",");
             const icsName = `option-${i + 1}`;
             return (
-              <div key={i} className="rounded-lg border border-zinc-900 p-5">
-                <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
-                  <h3 className="font-semibold">Option {i + 1}</h3>
-                  <div className="flex gap-2">
+              <GlassCard key={i} elevation={1} radius="lg" padding="1.4rem">
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: "0.5rem",
+                    flexWrap: "wrap",
+                    marginBottom: "1rem",
+                  }}
+                >
+                  <h3 style={{ margin: 0, ...display("1.1rem"), color: "var(--glass-text)" }}>Option {i + 1}</h3>
+                  <div style={{ display: "flex", gap: "0.5rem" }}>
                     <a
                       href={`/api/ics?ccns=${ccns}&name=${encodeURIComponent(icsName)}`}
-                      className="rounded-md border border-zinc-700 text-zinc-200 px-3 py-1.5 text-sm font-medium hover:border-zinc-500"
+                      style={{ textDecoration: "none" }}
                     >
-                      Export .ics
+                      <GlassButton variant="glass" size="sm">
+                        Export .ics
+                      </GlassButton>
                     </a>
-                    <button
-                      type="button"
-                      onClick={() => saveSchedule(combo)}
-                      disabled={saving}
-                      className="rounded-md bg-white text-black px-3 py-1.5 text-sm font-medium hover:bg-zinc-200 disabled:opacity-50"
-                    >
+                    <GlassButton type="button" variant="primary" size="sm" onClick={() => saveSchedule(combo)} disabled={saving}>
                       Save
-                    </button>
+                    </GlassButton>
                   </div>
                 </div>
                 <ScheduleGrid sections={combo} />
-                <div className="mt-4 overflow-x-auto">
-                  <table className="w-full text-sm">
+                <div style={{ marginTop: "1rem", overflowX: "auto" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "var(--font-text)", fontSize: "0.875rem" }}>
                     <tbody>
                       {combo.map((s) => (
-                        <tr key={s.ccn} className="border-t border-zinc-900 first:border-t-0">
-                          <td className="py-2 pr-4 font-mono text-zinc-500">{s.ccn}</td>
-                          <td className="py-2 pr-4 font-medium">
+                        <tr key={s.ccn} style={{ borderTop: "1px solid var(--glass-border)" }}>
+                          <td style={{ padding: "0.55rem 0.85rem 0.55rem 0", ...mono, color: "var(--glass-text-faint)" }}>{s.ccn}</td>
+                          <td style={{ padding: "0.55rem 0.85rem", color: "var(--glass-text)" }}>
                             {s.course_code} {s.section_type} {s.section_number}
                           </td>
-                          <td className="py-2 pr-4 text-zinc-400">{s.meeting_days ?? "—"}</td>
-                          <td className="py-2 pr-4 text-zinc-400">{s.meeting_time ?? "async"}</td>
-                          <td className="py-2 text-zinc-500">{s.instructors ?? ""}</td>
+                          <td style={{ padding: "0.55rem 0.85rem", color: "var(--glass-text-muted)" }}>{s.meeting_days ?? "—"}</td>
+                          <td style={{ padding: "0.55rem 0.85rem", color: "var(--glass-text-muted)" }}>{s.meeting_time ?? "async"}</td>
+                          <td style={{ padding: "0.55rem 0", color: "var(--glass-text-faint)" }}>{s.instructors ?? ""}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
-              </div>
+              </GlassCard>
             );
           })}
         </div>
@@ -269,22 +309,11 @@ export default function ScheduleBuilder({ termGroups }: { termGroups: TermGroup[
   );
 }
 
-// Normalize varied user input into the canonical "SUBJECT NUMBER" form the
-// sections table uses. Examples:
-//   "compsci 70"               -> "COMPSCI 70"
-//   "COLWRIT-R4B"              -> "COLWRIT R4B"
-//   "COLWRIT R4B 020"          -> "COLWRIT R4B"
-//   "COMPSCI 70 LEC 001"       -> "COMPSCI 70"
-//   "COMPSCI C8"               -> "COMPSCI C8"
-// We accept the first alpha-only token as the subject and the first
-// numeric-leading token (which may have a letter prefix like R/C and a
-// letter suffix like A/B/AC) as the course number. Anything after is
-// ignored — that's where users tend to paste a section CCN or LEC code.
 export function normalizeCourseCode(raw: string): string {
   const tokens = raw.toUpperCase().replace(/[-_/]+/g, " ").split(/\s+/).filter(Boolean);
   if (tokens.length === 0) return "";
   const subject = tokens.find((t) => /^[A-Z&]+$/.test(t));
-  if (!subject) return tokens.slice(0, 2).join(" "); // fallback to best guess
+  if (!subject) return tokens.slice(0, 2).join(" ");
   const afterSubject = tokens.slice(tokens.indexOf(subject) + 1);
   const number = afterSubject.find((t) => /^[A-Z]?\d+[A-Z]*$/.test(t));
   if (!number) return subject;

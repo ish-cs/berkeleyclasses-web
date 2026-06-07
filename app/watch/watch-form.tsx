@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { GlassCard, GlassButton, GlassInput } from "@/components/glass";
 
 export default function WatchForm({
   initialCcn,
@@ -25,7 +26,9 @@ export default function WatchForm({
     }
     setLoading(true);
     const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) {
       window.location.href = "/auth/signin?next=/watch";
       return;
@@ -39,9 +42,8 @@ export default function WatchForm({
     const { error: insErr } = await supabase
       .from("watch_subscriptions")
       .upsert({ user_id: user.id, ccn: n, email_on_open: true }, { onConflict: "user_id,ccn" });
-    if (insErr) {
-      setError(insErr.message);
-    } else {
+    if (insErr) setError(insErr.message);
+    else {
       setCcn("");
       router.refresh();
     }
@@ -49,12 +51,12 @@ export default function WatchForm({
   }
 
   return (
-    <div className="rounded-lg border border-zinc-900 p-5">
-      <p className="text-sm text-zinc-400 mb-3">
-        Notifications go to <span className="text-white">{userEmail || "your account email"}</span>.
+    <GlassCard elevation={1} radius="lg" padding="1.4rem">
+      <p style={{ margin: "0 0 0.85rem", fontFamily: "var(--font-text)", fontSize: "0.875rem", color: "var(--glass-text-muted)" }}>
+        Notifications go to <span style={{ color: "var(--glass-text)" }}>{userEmail || "your account email"}</span>.
       </p>
-      <div className="flex gap-2">
-        <input
+      <div style={{ display: "flex", gap: "0.55rem" }}>
+        <GlassInput
           type="text"
           inputMode="numeric"
           pattern="[0-9]*"
@@ -62,18 +64,16 @@ export default function WatchForm({
           onChange={(e) => setCcn(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && subscribe()}
           placeholder="CCN to watch (e.g. 29147)"
-          className="flex-1 rounded-md bg-zinc-900 border border-zinc-800 px-3 py-2 outline-none focus:border-zinc-500"
         />
-        <button
-          type="button"
-          onClick={subscribe}
-          disabled={loading}
-          className="rounded-md bg-white text-black px-4 py-2 font-medium hover:bg-zinc-200 disabled:opacity-50"
-        >
+        <GlassButton variant="primary" size="md" disabled={loading} onClick={subscribe}>
           {loading ? "Adding…" : "Watch"}
-        </button>
+        </GlassButton>
       </div>
-      {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
-    </div>
+      {error && (
+        <p style={{ margin: "0.85rem 0 0", color: "var(--cap-conflict-text)", fontSize: "0.875rem", fontFamily: "var(--font-text)" }}>
+          {error}
+        </p>
+      )}
+    </GlassCard>
   );
 }

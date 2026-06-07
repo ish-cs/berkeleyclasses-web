@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTransition } from "react";
+import { GlassSelect } from "@/components/glass";
 
 const OPTIONS: Array<{ value: string; label: string }> = [
   { value: "course_code_asc", label: "Course code · A→Z" },
@@ -13,7 +14,7 @@ const OPTIONS: Array<{ value: string; label: string }> = [
 export default function SortSelect({ current }: { current: string }) {
   const router = useRouter();
   const sp = useSearchParams();
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
 
   function update(v: string) {
     const p = new URLSearchParams(sp.toString());
@@ -23,19 +24,28 @@ export default function SortSelect({ current }: { current: string }) {
   }
 
   return (
-    <label className={`flex items-center gap-2 text-sm ${isPending ? "opacity-70" : ""}`}>
-      <span className="text-zinc-500">Sort</span>
-      <select
+    <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+      <span
+        style={{
+          fontFamily: "var(--font-text)",
+          fontSize: "0.8125rem",
+          color: "var(--glass-text-faint)",
+          whiteSpace: "nowrap",
+        }}
+      >
+        Sort
+      </span>
+      <GlassSelect
         value={current}
         onChange={(e) => update(e.target.value)}
-        className="rounded-md bg-zinc-900 border border-zinc-800 px-3 py-1.5 outline-none focus:border-zinc-500"
+        style={{ width: "auto", padding: "0.45rem 0.85rem", fontSize: "0.875rem" }}
       >
         {OPTIONS.map((o) => (
           <option key={o.value} value={o.value}>
             {o.label}
           </option>
         ))}
-      </select>
-    </label>
+      </GlassSelect>
+    </div>
   );
 }

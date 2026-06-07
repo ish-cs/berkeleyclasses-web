@@ -1,12 +1,23 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import Nav from "@/components/nav";
+import {  GlassCard, GlassButton } from "@/components/glass";
+import GlassNav from "@/components/glass/GlassNav";
 import ScheduleGrid from "@/components/schedule-grid";
 import DeleteScheduleButton from "./delete-schedule-button";
 import type { SavedSchedule, Section } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
+
+const WRAP: React.CSSProperties = { maxWidth: "1080px", margin: "0 auto", padding: "1.75rem 1.5rem 4rem" };
+const display = (size: string, weight = 600): React.CSSProperties => ({
+  fontFamily: "var(--font-display)",
+  fontWeight: weight,
+  letterSpacing: "var(--tracking-display)",
+  fontSize: size,
+});
+const text: React.CSSProperties = { fontFamily: "var(--font-text)", color: "var(--glass-text-muted)" };
+const mono: React.CSSProperties = { fontFamily: "var(--font-mono-sf)" };
 
 export default async function SavedPage() {
   const supabase = await createClient();
@@ -30,80 +41,132 @@ export default async function SavedPage() {
 
   const allCcns = Array.from(new Set([...schedules.flatMap((s) => s.ccns), ...starredCcns]));
   const { data: sectionRows } =
-    allCcns.length === 0
-      ? { data: [] as Section[] }
-      : await supabase.from("sections").select("*").in("ccn", allCcns);
+    allCcns.length === 0 ? { data: [] as Section[] } : await supabase.from("sections").select("*").in("ccn", allCcns);
   const sectionsByCcn = new Map<number, Section>();
   (sectionRows ?? []).forEach((s) => sectionsByCcn.set(s.ccn, s as Section));
   const starredSections = starredCcns.map((c) => sectionsByCcn.get(c)).filter(Boolean) as Section[];
 
   return (
-    <main className="min-h-screen bg-black text-white">
-      <Nav />
-      <section className="mx-auto max-w-5xl px-4 sm:px-6 py-10">
-        <div className="flex items-center justify-between mb-2 gap-3 flex-wrap">
-          <h1 className="text-3xl font-semibold">Saved</h1>
-          <Link
-            href="/schedule"
-            className="rounded-md bg-white text-black px-4 py-2 text-sm font-medium hover:bg-zinc-200"
-          >
-            Build new →
+    <>
+      <GlassNav />
+      <section style={WRAP}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "0.75rem",
+            flexWrap: "wrap",
+            marginBottom: "0.5rem",
+          }}
+        >
+          <h1 style={{ margin: 0, ...display("2rem"), color: "var(--glass-text)" }}>Saved</h1>
+          <Link href="/schedule" style={{ textDecoration: "none" }}>
+            <GlassButton variant="primary" size="md">
+              Build new →
+            </GlassButton>
           </Link>
         </div>
-        <p className="text-zinc-500 mb-8">
-          Signed in as <span className="text-zinc-300">{user.email}</span>
+        <p style={{ margin: "0.4rem 0 2rem", ...text }}>
+          Signed in as <span style={{ color: "var(--glass-text)" }}>{user.email}</span>
         </p>
 
         {starredSections.length > 0 && (
-          <div className="mb-10">
-            <h2 className="text-lg font-semibold mb-3">Starred classes</h2>
-            <div className="rounded-lg border border-zinc-900 divide-y divide-zinc-900">
-              {starredSections.map((s) => (
+          <div style={{ marginBottom: "2.5rem" }}>
+            <h2 style={{ margin: "0 0 0.85rem", ...display("1.25rem"), color: "var(--glass-text)" }}>
+              Starred classes
+            </h2>
+            <GlassCard elevation={1} radius="lg" padding={0}>
+              {starredSections.map((s, i) => (
                 <Link
                   key={s.ccn}
                   href={`/class/${s.ccn}`}
-                  className="flex items-center justify-between px-4 py-3 hover:bg-zinc-950"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "0.85rem 1rem",
+                    borderTop: i === 0 ? "none" : "1px solid var(--glass-border)",
+                    textDecoration: "none",
+                    color: "var(--glass-text)",
+                  }}
                 >
-                  <div className="min-w-0">
-                    <div className="font-medium">
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontFamily: "var(--font-text)", fontWeight: 600 }}>
                       {s.course_code} {s.section_type} {s.section_number}
                     </div>
-                    <div className="text-xs text-zinc-500 truncate">{s.title}</div>
+                    <div
+                      style={{
+                        fontSize: "0.75rem",
+                        color: "var(--glass-text-faint)",
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                    >
+                      {s.title}
+                    </div>
                   </div>
-                  <span className={`font-mono text-sm ${s.open_seats > 0 ? "text-green-400" : "text-zinc-500"}`}>
+                  <span
+                    style={{
+                      ...mono,
+                      fontSize: "0.875rem",
+                      color: s.open_seats > 0 ? "var(--cap-open-text)" : "var(--glass-text-faint)",
+                    }}
+                  >
                     {s.open_seats} open
                   </span>
                 </Link>
               ))}
-            </div>
+            </GlassCard>
           </div>
         )}
 
-        <h2 className="text-lg font-semibold mb-3">Schedules</h2>
+        <h2 style={{ margin: "0 0 0.85rem", ...display("1.25rem"), color: "var(--glass-text)" }}>Schedules</h2>
         {schedules.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-zinc-800 px-6 py-10 text-center">
-            <p className="text-zinc-400 mb-4">You haven&apos;t saved any schedules yet.</p>
-            <Link
-              href="/schedule"
-              className="rounded-md bg-white text-black px-4 py-2 text-sm font-medium hover:bg-zinc-200"
-            >
-              Build one →
-            </Link>
-          </div>
+          <GlassCard elevation={1} radius="lg" padding="2rem 1.5rem" specular={false}>
+            <p style={{ margin: "0 0 1rem", ...text, textAlign: "center" }}>You haven&apos;t saved any schedules yet.</p>
+            <div style={{ display: "flex", justifyContent: "center" }}>
+              <Link href="/schedule" style={{ textDecoration: "none" }}>
+                <GlassButton variant="primary" size="md">
+                  Build one →
+                </GlassButton>
+              </Link>
+            </div>
+          </GlassCard>
         ) : (
-          <div className="space-y-6">
+          <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
             {schedules.map((sched) => {
-              const sections = sched.ccns
-                .map((c) => sectionsByCcn.get(c))
-                .filter(Boolean) as Section[];
+              const sections = sched.ccns.map((c) => sectionsByCcn.get(c)).filter(Boolean) as Section[];
               const ccns = sched.ccns.join(",");
               const icsName = sched.name || "schedule";
               return (
-                <div key={sched.id} className="rounded-lg border border-zinc-900 p-5">
-                  <div className="flex items-start justify-between mb-3 gap-3 flex-wrap">
-                    <div className="min-w-0">
-                      <h3 className="font-semibold truncate">{sched.name}</h3>
-                      <p className="text-xs text-zinc-500">
+                <GlassCard key={sched.id} elevation={1} radius="lg" padding="1.4rem">
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "flex-start",
+                      justifyContent: "space-between",
+                      gap: "0.75rem",
+                      flexWrap: "wrap",
+                      marginBottom: "1rem",
+                    }}
+                  >
+                    <div style={{ minWidth: 0 }}>
+                      <h3
+                        style={{
+                          margin: 0,
+                          ...display("1.1rem"),
+                          color: "var(--glass-text)",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                          maxWidth: "40ch",
+                        }}
+                      >
+                        {sched.name}
+                      </h3>
+                      <p style={{ margin: "0.3rem 0 0", fontSize: "0.75rem", color: "var(--glass-text-faint)", ...text }}>
                         Updated{" "}
                         {new Date(sched.updated_at).toLocaleDateString(undefined, {
                           month: "short",
@@ -113,49 +176,47 @@ export default async function SavedPage() {
                         · {sched.ccns.length} section{sched.ccns.length === 1 ? "" : "s"}
                       </p>
                     </div>
-                    <div className="flex gap-2">
+                    <div style={{ display: "flex", gap: "0.5rem" }}>
                       <a
                         href={`/api/ics?ccns=${ccns}&name=${encodeURIComponent(icsName)}`}
-                        className="rounded-md border border-zinc-700 text-zinc-200 px-3 py-1.5 text-sm font-medium hover:border-zinc-500"
+                        style={{ textDecoration: "none" }}
                       >
-                        Export .ics
+                        <GlassButton variant="glass" size="sm">
+                          Export .ics
+                        </GlassButton>
                       </a>
                       <DeleteScheduleButton id={sched.id} />
                     </div>
                   </div>
                   <ScheduleGrid sections={sections} />
-                  <table className="w-full text-sm mt-4">
+                  <table style={{ width: "100%", borderCollapse: "collapse", marginTop: "1rem", fontFamily: "var(--font-text)", fontSize: "0.875rem" }}>
                     <tbody>
-                      {sched.ccns.map((ccn) => {
+                      {sched.ccns.map((ccn, i) => {
                         const s = sectionsByCcn.get(ccn);
                         return (
-                          <tr key={ccn} className="border-t border-zinc-900 first:border-t-0">
-                            <td className="py-2 pr-4 font-mono text-zinc-500">
-                              <Link href={`/class/${ccn}`} className="hover:text-white">
+                          <tr key={ccn} style={{ borderTop: i === 0 ? "none" : "1px solid var(--glass-border)" }}>
+                            <td style={{ padding: "0.5rem 0.85rem 0.5rem 0", ...mono, color: "var(--glass-text-faint)" }}>
+                              <Link href={`/class/${ccn}`} style={{ color: "var(--glass-text-faint)", textDecoration: "none" }}>
                                 {ccn}
                               </Link>
                             </td>
-                            <td className="py-2 pr-4 font-medium">
+                            <td style={{ padding: "0.5rem 0.85rem", color: "var(--glass-text)" }}>
                               {s ? `${s.course_code} ${s.section_type} ${s.section_number}` : "(not synced)"}
                             </td>
-                            <td className="py-2 pr-4 text-zinc-400">
-                              {s?.meeting_days ?? "—"}
-                            </td>
-                            <td className="py-2 pr-4 text-zinc-400">
-                              {s?.meeting_time ?? "async"}
-                            </td>
-                            <td className="py-2 text-zinc-500 truncate">{s?.instructors ?? ""}</td>
+                            <td style={{ padding: "0.5rem 0.85rem", color: "var(--glass-text-muted)" }}>{s?.meeting_days ?? "—"}</td>
+                            <td style={{ padding: "0.5rem 0.85rem", color: "var(--glass-text-muted)" }}>{s?.meeting_time ?? "async"}</td>
+                            <td style={{ padding: "0.5rem 0", color: "var(--glass-text-faint)" }}>{s?.instructors ?? ""}</td>
                           </tr>
                         );
                       })}
                     </tbody>
                   </table>
-                </div>
+                </GlassCard>
               );
             })}
           </div>
         )}
       </section>
-    </main>
+    </>
   );
 }

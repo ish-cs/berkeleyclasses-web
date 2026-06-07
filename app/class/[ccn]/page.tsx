@@ -1,14 +1,26 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import Nav from "@/components/nav";
+import {  GlassCard, GlassButton, SeatCapsule } from "@/components/glass";
+import GlassNav from "@/components/glass/GlassNav";
 import GradeHistogram from "@/components/grade-histogram";
 import WaitlistTrend from "@/components/waitlist-trend";
 import StarButton from "@/components/star-button";
 import { extractPrereqs } from "@/lib/prereqs";
+import { subjectAccent } from "@/lib/accent";
 import type { CourseMeta, Section, SectionSnapshot } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
+
+const WRAP: React.CSSProperties = { maxWidth: "920px", margin: "0 auto", padding: "1.75rem 1.5rem 4rem" };
+const display = (size: string, weight = 600): React.CSSProperties => ({
+  fontFamily: "var(--font-display)",
+  fontWeight: weight,
+  letterSpacing: "var(--tracking-display)",
+  fontSize: size,
+});
+const text: React.CSSProperties = { fontFamily: "var(--font-text)", color: "var(--glass-text-muted)" };
+const mono: React.CSSProperties = { fontFamily: "var(--font-mono-sf)" };
 
 export default async function ClassPage({
   params,
@@ -20,15 +32,10 @@ export default async function ClassPage({
   if (Number.isNaN(ccnNum) || ccnNum <= 0) notFound();
 
   const supabase = await createClient();
-  const { data: section } = await supabase
-    .from("sections")
-    .select("*")
-    .eq("ccn", ccnNum)
-    .maybeSingle();
+  const { data: section } = await supabase.from("sections").select("*").eq("ccn", ccnNum).maybeSingle();
   if (!section) notFound();
   const s = section as Section;
 
-  // Other sections of the same course
   const [{ data: siblings }, { data: metaRow }, { data: snapshotRows }] = await Promise.all([
     supabase
       .from("sections")
@@ -55,206 +62,340 @@ export default async function ClassPage({
     requiredCourses: meta?.required_courses,
     description: s.description,
   });
+  const accent = subjectAccent(s.subject_name);
+
+  const stats: { label: string; value: string | number | null; accent?: string }[] = [
+    { label: "Units", value: s.units },
+    { label: "Meeting days", value: s.meeting_days },
+    { label: "Meeting time", value: s.meeting_time },
+    { label: "Location", value: s.location },
+    { label: "Mode", value: s.instruction_mode },
+    { label: "Dates", value: s.meeting_dates },
+  ];
+  if (s.capacity > 0) {
+    stats.push({
+      label: "Enrollment",
+      value: `${s.enrolled} / ${s.capacity}${s.waitlisted ? ` · ${s.waitlisted} wl` : ""}`,
+      accent: s.open_seats > 0 ? "var(--cap-open-text)" : undefined,
+    });
+  }
 
   return (
-    <main className="min-h-screen bg-black text-white">
-      <Nav />
-      <section className="mx-auto max-w-4xl px-4 sm:px-6 py-8 sm:py-10">
-        <Link href="/find" className="text-sm text-zinc-500 hover:text-zinc-300">
+    <>
+      <GlassNav />
+      <section style={WRAP}>
+        <Link
+          href="/find"
+          style={{
+            ...text,
+            fontSize: "0.875rem",
+            color: "var(--glass-text-faint)",
+            display: "inline-block",
+            marginBottom: "1rem",
+            textDecoration: "none",
+          }}
+        >
           ← Back to search
         </Link>
-        <div className="mt-4 flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <p className="text-zinc-500 text-sm">
-              CCN {s.ccn} ·{" "}
-              {s.subject_name ? (
-                <Link
-                  href={`/dept/${encodeURIComponent(s.subject_name)}`}
-                  className="hover:text-zinc-300"
-                >
-                  {s.subject_name}
-                </Link>
-              ) : (
-                "—"
-              )}
-            </p>
-            <h1 className="text-2xl sm:text-3xl font-semibold break-words">
-              {s.course_code} {s.section_type} {s.section_number}
-            </h1>
-            <p className="text-lg sm:text-xl text-zinc-300 mt-1">{s.title}</p>
-          </div>
-          <div className="text-right flex items-start gap-3">
-            <StarButton ccn={s.ccn} variant="icon" />
-            <div>
-              <p className={`text-3xl font-mono ${s.open_seats > 0 ? "text-green-400" : "text-zinc-500"}`}>
-                {s.open_seats}
+
+        <GlassCard elevation={2} radius="lg" padding="2rem" tint={accent}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              justifyContent: "space-between",
+              gap: "1.5rem",
+              flexWrap: "wrap",
+            }}
+          >
+            <div style={{ minWidth: 0 }}>
+              <p style={{ margin: "0 0 0.4rem", ...mono, fontSize: "0.8rem", color: "var(--glass-text-faint)" }}>
+                CCN {s.ccn} ·{" "}
+                {s.subject_name ? (
+                  <Link
+                    href={`/dept/${encodeURIComponent(s.subject_name)}`}
+                    style={{ color: "var(--glass-text-muted)", textDecoration: "none" }}
+                  >
+                    {s.subject_name}
+                  </Link>
+                ) : (
+                  "—"
+                )}
               </p>
-              <p className="text-xs text-zinc-500">open seats</p>
+              <h1 style={{ margin: 0, ...display("2rem"), color: "var(--glass-text)" }}>
+                {s.course_code} {s.section_type} {s.section_number}
+              </h1>
+              <p style={{ margin: "0.4rem 0 0", ...text, fontSize: "1.15rem", color: "var(--glass-text)" }}>{s.title}</p>
+            </div>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: "0.85rem" }}>
+              <StarButton ccn={s.ccn} variant="icon" />
+              <SeatCapsule seats={s.open_seats ?? 0} size="lg" />
             </div>
           </div>
-        </div>
 
-        {((meta?.requirements && meta.requirements.length > 0) || prereqs.text || prereqs.courses.length > 0) && (
-          <div className="mt-5 flex flex-wrap gap-2 items-center">
-            {(meta?.requirements ?? []).map((r) => (
-              <Link
-                key={r}
-                href={`/find?reqs=${encodeURIComponent(r)}`}
-                className="rounded-md bg-amber-500/10 border border-amber-500/40 text-amber-200 px-2.5 py-1 text-xs font-medium hover:bg-amber-500/20"
-                title="Satisfies this UC Berkeley general requirement"
-              >
-                {r}
-              </Link>
-            ))}
-            {prereqs.courses.map((c) => (
-              <span
-                key={`${c.subject} ${c.number}`}
-                className="rounded-md bg-zinc-900 border border-zinc-800 px-2.5 py-1 text-xs text-zinc-200"
-                title="Prerequisite"
-              >
-                <span className="text-zinc-500">prereq </span>
-                <span className="font-mono">{c.subject} {c.number}</span>
-              </span>
-            ))}
-          </div>
-        )}
-        {prereqs.text && prereqs.courses.length === 0 && (
-          <p className="mt-3 text-sm text-zinc-400">
-            <span className="text-zinc-500">Prereq: </span>
-            {prereqs.text}
-          </p>
-        )}
+          {((meta?.requirements && meta.requirements.length > 0) || prereqs.courses.length > 0) && (
+            <div
+              style={{
+                marginTop: "1.25rem",
+                display: "flex",
+                flexWrap: "wrap",
+                gap: "0.4rem",
+                alignItems: "center",
+              }}
+            >
+              {(meta?.requirements ?? []).map((r) => (
+                <Link
+                  key={r}
+                  href={`/find?reqs=${encodeURIComponent(r)}`}
+                  title="Satisfies this UC Berkeley general requirement"
+                  style={{
+                    padding: "0.25rem 0.7rem",
+                    borderRadius: "var(--r-pill)",
+                    fontSize: "0.75rem",
+                    fontWeight: 600,
+                    color: "var(--cap-warn-text)",
+                    background: "var(--cap-warn-fill)",
+                    border: "1px solid var(--cap-warn-border)",
+                    textDecoration: "none",
+                  }}
+                >
+                  {r}
+                </Link>
+              ))}
+              {prereqs.courses.map((c) => (
+                <span
+                  key={`${c.subject} ${c.number}`}
+                  title="Prerequisite"
+                  style={{
+                    padding: "0.25rem 0.7rem",
+                    borderRadius: "var(--r-pill)",
+                    fontSize: "0.75rem",
+                    background: "var(--glass-1)",
+                    border: "1px solid var(--glass-border)",
+                    color: "var(--glass-text)",
+                  }}
+                >
+                  <span style={{ color: "var(--glass-text-faint)" }}>prereq </span>
+                  <span style={mono}>
+                    {c.subject} {c.number}
+                  </span>
+                </span>
+              ))}
+            </div>
+          )}
+          {prereqs.text && prereqs.courses.length === 0 && (
+            <p style={{ marginTop: "0.9rem", ...text, fontSize: "0.875rem" }}>
+              <span style={{ color: "var(--glass-text-faint)" }}>Prereq: </span>
+              {prereqs.text}
+            </p>
+          )}
 
-        <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-8 text-sm">
-          <div className="border-l-2 border-zinc-800 pl-3">
-            <dt className="text-zinc-500 text-xs uppercase tracking-wide">Instructors</dt>
-            <dd className="text-zinc-200 mt-0.5">
-              {s.instructors
-                ? s.instructors.split(/[;,]/).map((name, i, arr) => {
-                    const trimmed = name.trim();
-                    if (!trimmed) return null;
-                    return (
-                      <span key={trimmed + i}>
-                        <Link
-                          href={`/instructor/${encodeURIComponent(trimmed)}`}
-                          className="hover:text-white underline decoration-zinc-700 hover:decoration-zinc-400 underline-offset-2"
-                        >
-                          {trimmed}
-                        </Link>
-                        {i < arr.length - 1 && trimmed && ", "}
-                      </span>
-                    );
-                  })
-                : "—"}
-            </dd>
-          </div>
-          <Stat label="Units" value={s.units} />
-          <Stat label="Meeting days" value={s.meeting_days} />
-          <Stat label="Meeting time" value={s.meeting_time} />
-          <Stat label="Location" value={s.location} />
-          <Stat label="Mode" value={s.instruction_mode} />
-          <Stat label="Dates" value={s.meeting_dates} />
-          {/* classes.berkeley.edu's search-result cards only surface open seats,
-              not enrolled/capacity counts. Hide this stat unless capacity > 0
-              (i.e. we have richer data from a future detail-page scrape). */}
-          {s.capacity > 0 && (
+          <dl
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+              gap: "0.7rem",
+              margin: "1.75rem 0 0",
+            }}
+          >
             <Stat
-              label="Enrollment"
-              value={`${s.enrolled} / ${s.capacity}${s.waitlisted ? ` (${s.waitlisted} waitlisted)` : ""}`}
+              label="Instructors"
+              value={
+                s.instructors
+                  ? s.instructors
+                      .split(/[;,]/)
+                      .map((n) => n.trim())
+                      .filter(Boolean)
+                      .map((name, i, arr) => (
+                        <span key={name + i}>
+                          <Link
+                            href={`/instructor/${encodeURIComponent(name)}`}
+                            style={{ color: "var(--glass-text)", textDecoration: "underline", textDecorationColor: "var(--glass-border-strong)" }}
+                          >
+                            {name}
+                          </Link>
+                          {i < arr.length - 1 && ", "}
+                        </span>
+                      ))
+                  : "—"
+              }
             />
-          )}
-        </dl>
+            {stats.map((st) => (
+              <Stat key={st.label} label={st.label} value={st.value} accent={st.accent} />
+            ))}
+          </dl>
 
-        <div className="mt-10 grid gap-6 lg:grid-cols-2">
+          <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap", marginTop: "1.5rem" }}>
+            <Link href={`/compare?a=${s.ccn}`}>
+              <GlassButton variant="glass" size="md">
+                Compare →
+              </GlassButton>
+            </Link>
+            <Link href={`/watch?ccn=${s.ccn}`}>
+              <GlassButton variant="primary" size="md">
+                Watch for open seats
+              </GlassButton>
+            </Link>
+          </div>
+        </GlassCard>
+
+        <div
+          style={{
+            marginTop: "1.5rem",
+            display: "grid",
+            gap: "1.25rem",
+            gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))",
+          }}
+        >
           {meta?.grade_distribution && meta.grade_distribution.length > 0 && (
-            <GradeHistogram
-              distribution={meta.grade_distribution}
-              average={meta.grade_average}
-              sampleSize={meta.grade_sample_size}
-            />
+            <GlassCard elevation={1} radius="lg" padding="1.5rem">
+              <GradeHistogram
+                distribution={meta.grade_distribution}
+                average={meta.grade_average}
+                sampleSize={meta.grade_sample_size}
+              />
+            </GlassCard>
           )}
-          <WaitlistTrend
-            snapshots={snapshots}
-            current={{ open_seats: s.open_seats, waitlisted: s.waitlisted, capacity: s.capacity }}
-          />
+          <GlassCard elevation={1} radius="lg" padding="1.5rem">
+            <WaitlistTrend
+              snapshots={snapshots}
+              current={{ open_seats: s.open_seats, waitlisted: s.waitlisted, capacity: s.capacity }}
+            />
+          </GlassCard>
         </div>
 
         {s.description && (
-          <div className="mt-10">
-            <h2 className="text-lg font-semibold mb-2">Description</h2>
-            <p className="text-zinc-300 whitespace-pre-wrap leading-relaxed">{s.description}</p>
-          </div>
+          <GlassCard elevation={1} radius="lg" padding="1.75rem" style={{ marginTop: "1.5rem" }}>
+            <h2 style={{ margin: "0 0 0.85rem", ...display("1.15rem"), color: "var(--glass-text)" }}>Description</h2>
+            <p style={{ margin: 0, ...text, color: "var(--glass-text)", whiteSpace: "pre-wrap", lineHeight: 1.6 }}>
+              {s.description}
+            </p>
+          </GlassCard>
         )}
 
         {siblings && siblings.length > 0 && (
-          <div className="mt-10">
-            <h2 className="text-lg font-semibold mb-4">
+          <GlassCard elevation={1} radius="lg" padding="1.5rem" style={{ marginTop: "1.5rem", overflow: "hidden" }}>
+            <h2 style={{ margin: "0 0 1rem", ...display("1.15rem"), color: "var(--glass-text)" }}>
               Other sections of {s.course_code}
             </h2>
-            <div className="overflow-x-auto rounded-lg border border-zinc-900">
-              <table className="w-full text-sm">
-                <thead className="bg-zinc-950 text-zinc-400">
-                  <tr>
-                    <th className="text-left px-4 py-2">CCN</th>
-                    <th className="text-left px-4 py-2">Type</th>
-                    <th className="text-left px-4 py-2">Sec</th>
-                    <th className="text-left px-4 py-2">Instructors</th>
-                    <th className="text-left px-4 py-2">Days / Time</th>
-                    <th className="text-right px-4 py-2">Open</th>
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "var(--font-text)", fontSize: "0.875rem" }}>
+                <thead>
+                  <tr style={{ color: "var(--glass-text-faint)", textAlign: "left" }}>
+                    <Th>CCN</Th>
+                    <Th>Type</Th>
+                    <Th>Sec</Th>
+                    <Th>Instructors</Th>
+                    <Th>Days / Time</Th>
+                    <Th right>Open</Th>
                   </tr>
                 </thead>
                 <tbody>
                   {siblings.map((sib) => (
-                    <tr key={sib.ccn} className="border-t border-zinc-900 hover:bg-zinc-950">
-                      <td className="px-4 py-2 font-mono">
-                        <Link href={`/class/${sib.ccn}`} className="hover:text-white text-zinc-300">
+                    <tr key={sib.ccn} style={{ borderTop: "1px solid var(--glass-border)" }}>
+                      <Td>
+                        <Link href={`/class/${sib.ccn}`} style={{ color: "var(--glass-text)", textDecoration: "none", ...mono }}>
                           {sib.ccn}
                         </Link>
-                      </td>
-                      <td className="px-4 py-2">{sib.section_type}</td>
-                      <td className="px-4 py-2">{sib.section_number}</td>
-                      <td className="px-4 py-2 max-w-xs truncate">{sib.instructors ?? ""}</td>
-                      <td className="px-4 py-2 whitespace-nowrap text-zinc-400">
+                      </Td>
+                      <Td>{sib.section_type}</Td>
+                      <Td>{sib.section_number}</Td>
+                      <Td truncate>{sib.instructors ?? ""}</Td>
+                      <Td>
                         {sib.meeting_days ?? "—"}
                         {sib.meeting_time ? ` · ${sib.meeting_time}` : ""}
-                      </td>
-                      <td className="px-4 py-2 text-right">
-                        <span className={sib.open_seats > 0 ? "text-green-400" : "text-zinc-500"}>
+                      </Td>
+                      <Td right>
+                        <span style={{ color: sib.open_seats > 0 ? "var(--cap-open-text)" : "var(--glass-text-faint)", ...mono }}>
                           {sib.open_seats}
                         </span>
-                      </td>
+                      </Td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          </div>
+          </GlassCard>
         )}
-
-        <div className="mt-10 flex gap-3">
-          <Link
-            href={`/compare?a=${s.ccn}`}
-            className="rounded-md border border-zinc-700 px-4 py-2 text-sm font-medium hover:border-zinc-500"
-          >
-            Compare with another section →
-          </Link>
-          <Link
-            href={`/watch?ccn=${s.ccn}`}
-            className="rounded-md border border-zinc-700 px-4 py-2 text-sm font-medium hover:border-zinc-500"
-          >
-            Watch for open seats
-          </Link>
-        </div>
       </section>
-    </main>
+    </>
   );
 }
 
-function Stat({ label, value }: { label: string; value: string | number | null }) {
+function Stat({ label, value, accent }: { label: string; value: React.ReactNode; accent?: string }) {
   return (
-    <div className="border-l-2 border-zinc-800 pl-3">
-      <dt className="text-zinc-500 text-xs uppercase tracking-wide">{label}</dt>
-      <dd className="text-zinc-200 mt-0.5">{value || "—"}</dd>
+    <div
+      style={{
+        padding: "0.85rem 1rem",
+        borderRadius: "var(--r-glass-sm)",
+        background: "var(--glass-1)",
+        border: "1px solid var(--glass-border)",
+      }}
+    >
+      <dt
+        style={{
+          fontSize: "0.68rem",
+          textTransform: "uppercase",
+          letterSpacing: "0.08em",
+          color: "var(--glass-text-faint)",
+          fontFamily: "var(--font-text)",
+        }}
+      >
+        {label}
+      </dt>
+      <dd
+        style={{
+          margin: "0.3rem 0 0",
+          color: accent || "var(--glass-text)",
+          fontFamily: "var(--font-text)",
+          fontWeight: 500,
+        }}
+      >
+        {value === null || value === undefined || value === "" ? "—" : value}
+      </dd>
     </div>
+  );
+}
+
+function Th({ children, right }: { children: React.ReactNode; right?: boolean }) {
+  return (
+    <th
+      style={{
+        textAlign: right ? "right" : "left",
+        padding: "0.5rem 0.85rem",
+        fontWeight: 500,
+        fontSize: "0.72rem",
+        textTransform: "uppercase",
+        letterSpacing: "0.08em",
+      }}
+    >
+      {children}
+    </th>
+  );
+}
+
+function Td({
+  children,
+  right,
+  truncate,
+}: {
+  children: React.ReactNode;
+  right?: boolean;
+  truncate?: boolean;
+}) {
+  return (
+    <td
+      style={{
+        padding: "0.5rem 0.85rem",
+        textAlign: right ? "right" : "left",
+        color: "var(--glass-text-muted)",
+        whiteSpace: truncate ? "nowrap" : undefined,
+        overflow: truncate ? "hidden" : undefined,
+        textOverflow: truncate ? "ellipsis" : undefined,
+        maxWidth: truncate ? "20ch" : undefined,
+      }}
+    >
+      {children}
+    </td>
   );
 }
