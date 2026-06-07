@@ -43,7 +43,19 @@ export default async function ClassPage({
         </Link>
         <div className="mt-4 flex items-center justify-between">
           <div>
-            <p className="text-zinc-500 text-sm">CCN {s.ccn} · {s.subject_name}</p>
+            <p className="text-zinc-500 text-sm">
+              CCN {s.ccn} ·{" "}
+              {s.subject_name ? (
+                <Link
+                  href={`/dept/${encodeURIComponent(s.subject_name)}`}
+                  className="hover:text-zinc-300"
+                >
+                  {s.subject_name}
+                </Link>
+              ) : (
+                "—"
+              )}
+            </p>
             <h1 className="text-3xl font-semibold">
               {s.course_code} {s.section_type} {s.section_number}
             </h1>
@@ -58,7 +70,28 @@ export default async function ClassPage({
         </div>
 
         <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-8 text-sm">
-          <Stat label="Instructors" value={s.instructors} />
+          <div className="border-l-2 border-zinc-800 pl-3">
+            <dt className="text-zinc-500 text-xs uppercase tracking-wide">Instructors</dt>
+            <dd className="text-zinc-200 mt-0.5">
+              {s.instructors
+                ? s.instructors.split(/[;,]/).map((name, i, arr) => {
+                    const trimmed = name.trim();
+                    if (!trimmed) return null;
+                    return (
+                      <span key={trimmed + i}>
+                        <Link
+                          href={`/instructor/${encodeURIComponent(trimmed)}`}
+                          className="hover:text-white underline decoration-zinc-700 hover:decoration-zinc-400 underline-offset-2"
+                        >
+                          {trimmed}
+                        </Link>
+                        {i < arr.length - 1 && trimmed && ", "}
+                      </span>
+                    );
+                  })
+                : "—"}
+            </dd>
+          </div>
           <Stat label="Units" value={s.units} />
           <Stat label="Meeting days" value={s.meeting_days} />
           <Stat label="Meeting time" value={s.meeting_time} />
