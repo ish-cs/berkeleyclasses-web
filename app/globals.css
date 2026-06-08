@@ -182,3 +182,34 @@ html[data-reduced-motion="true"] .mesh-wash { animation: none; }
 }
 .bc-glass > * { position: relative; z-index: 1; }
 [data-theme="dark"] .theme-toggle-knob::before { content: "☾"; color: #dbeafe; }
+
+.bc-btn {
+  position: relative; isolation: isolate;
+  border: 0; cursor: pointer;
+  border-radius: 999px;
+  font-family: inherit; font-weight: 500;
+  color: var(--ink-strong);
+  background: var(--glass-fill);
+  backdrop-filter: blur(60px) saturate(220%);
+  -webkit-backdrop-filter: blur(60px) saturate(220%);
+  box-shadow: inset 0 1px 0 var(--glass-highlight), inset 0 0 0 0.5px var(--glass-border);
+  transition: background var(--motion-hover), transform var(--motion-press);
+  overflow: hidden;
+}
+.bc-btn:hover { background: var(--glass-fill-strong); }
+.bc-btn:active { transform: translateY(0.5px); }
+.bc-btn:focus-visible { outline: 2px solid var(--berkeley-blue); outline-offset: 2px; }
+.bc-btn-spec {
+  position: absolute; inset: 0; pointer-events: none;
+  background: var(--glass-spec); border-radius: inherit;
+}
+.bc-btn-label { position: relative; z-index: 1; }
+
+.bc-btn--sm { padding: 6px 12px; font-size: 12px; }
+.bc-btn--md { padding: 9px 16px; font-size: 13px; }
+.bc-btn--lg { padding: 12px 22px; font-size: 14px; }
+
+.bc-btn--primary { color: var(--primary-text); background: var(--tint-primary); }
+.bc-btn--primary:hover { background: var(--tint-primary-strong); }
+
+.bc-btn--gold { color: var(--gold-text); background: var(--tint-gold); }
