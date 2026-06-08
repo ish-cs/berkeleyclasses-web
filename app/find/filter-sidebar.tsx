@@ -1,9 +1,9 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useRef, useState, useTransition, type CSSProperties, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import type { TermGroup } from "@/lib/terms";
-import { GlassCard, GlassInput, GlassPill, GlassSelect } from "@/components/glass";
+import { Chip, Glass, GlassInput, GlassSelect } from "@/components/glass";
 
 type Subject = { subject_id: string; name: string };
 type ReqOption = { code: string; description: string };
@@ -32,16 +32,6 @@ const DAYS = [
 ];
 const TYPES = ["LEC", "DIS", "LAB", "SEM", "STD"];
 const UNIT_OPTIONS = ["1", "2", "3", "4", "5"];
-
-const LABEL: CSSProperties = {
-  fontFamily: "var(--font-text)",
-  fontSize: "0.7rem",
-  textTransform: "uppercase",
-  letterSpacing: "0.08em",
-  color: "var(--glass-text-faint)",
-  marginBottom: "0.55rem",
-  display: "block",
-};
 
 export default function FilterSidebar({
   termGroups,
@@ -125,94 +115,42 @@ export default function FilterSidebar({
   const activeCount = countActive(current);
 
   return (
-    <GlassCard
-      elevation={1}
-      radius="lg"
-      padding={0}
-      specular={false}
+    <Glass
+      as="aside"
+      className={`bc-filters${open ? " bc-filters--open" : " bc-filters--closed"}`}
       style={{ opacity: isPending ? 0.7 : 1, transition: "opacity var(--dur) var(--spring-soft)" }}
     >
-      <div
-        style={{
-          padding: "0.85rem 1rem",
-          borderBottom: "1px solid var(--glass-border)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-      >
+      {/* Header row */}
+      <div className="bc-filters-header">
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "0.5rem",
-            background: "transparent",
-            border: "none",
-            color: "var(--glass-text)",
-            fontFamily: "var(--font-text)",
-            fontSize: "0.875rem",
-            fontWeight: 600,
-            cursor: "pointer",
-            padding: 0,
-          }}
           aria-expanded={open}
+          className="bc-filters-toggle"
         >
-          <span>Filters</span>
+          Filters
           {activeCount > 0 && (
-            <span
-              style={{
-                background: "var(--glass-2)",
-                color: "var(--glass-text)",
-                fontFamily: "var(--font-mono-sf)",
-                fontSize: "0.625rem",
-                padding: "0.1rem 0.4rem",
-                borderRadius: "9999px",
-                border: "1px solid var(--glass-border)",
-              }}
-            >
-              {activeCount}
-            </span>
+            <span className="bc-filters-count">{activeCount}</span>
           )}
         </button>
-        <button
-          type="button"
-          onClick={resetAll}
-          style={{
-            background: "transparent",
-            border: "none",
-            cursor: "pointer",
-            color: "var(--glass-text-faint)",
-            fontSize: "0.75rem",
-            fontFamily: "var(--font-text)",
-          }}
-        >
-          Reset
-        </button>
+        <button type="button" onClick={resetAll} className="bc-filters-reset">Reset</button>
       </div>
 
-      <div
-        style={{
-          padding: "1rem",
-          display: open ? "flex" : undefined,
-          flexDirection: "column",
-          gap: "1.1rem",
-          maxHeight: "calc(100vh - 11rem)",
-          overflowY: "auto",
-        }}
-        className="bc-filter-body"
-      >
-        <Block label="Search">
+      <div className="bc-filters-body">
+        {/* Search */}
+        <div className="bc-filters-group">
+          <h4 className="bc-h4">Search</h4>
           <GlassInput
             type="text"
             placeholder="Course, title, description"
             value={qLocal}
             onChange={(e) => setQLocal(e.target.value)}
           />
-        </Block>
+        </div>
 
-        <Block label="Term">
+        {/* Term */}
+        <div className="bc-filters-group">
+          <h4 className="bc-h4">Term</h4>
           <GlassSelect value={current.term} onChange={(e) => setOne("term", e.target.value)}>
             {termGroups.map((g) =>
               g.kind === "single" ? (
@@ -231,9 +169,11 @@ export default function FilterSidebar({
               ),
             )}
           </GlassSelect>
-        </Block>
+        </div>
 
-        <Block label="Subject">
+        {/* Subject */}
+        <div className="bc-filters-group">
+          <h4 className="bc-h4">Subject</h4>
           <GlassSelect value={current.subject} onChange={(e) => setOne("subject", e.target.value)}>
             <option value="">All subjects</option>
             {subjects.map((s) => (
@@ -242,46 +182,35 @@ export default function FilterSidebar({
               </option>
             ))}
           </GlassSelect>
-        </Block>
+        </div>
 
-        <Block label="Availability">
-          <label
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "0.55rem",
-              fontFamily: "var(--font-text)",
-              fontSize: "0.875rem",
-              color: "var(--glass-text)",
-              cursor: "pointer",
-            }}
-          >
+        {/* Availability */}
+        <div className="bc-filters-group">
+          <h4 className="bc-h4">Availability</h4>
+          <label className="bc-filter-checkbox">
             <input
               type="checkbox"
               checked={current.openOnly}
               onChange={(e) => setOne("open", e.target.checked ? "1" : "")}
-              style={{ accentColor: "#4a90d9" }}
             />
             Open seats only
           </label>
-        </Block>
+        </div>
 
-        <Block label="Mode">
-          <PillRow>
-            <GlassPill active={!current.mode} onClick={() => setOne("mode", "")}>
-              Any
-            </GlassPill>
-            <GlassPill active={current.mode === "in-person"} onClick={() => setOne("mode", "in-person")}>
-              In-person
-            </GlassPill>
-            <GlassPill active={current.mode === "online"} onClick={() => setOne("mode", "online")}>
-              Online
-            </GlassPill>
-          </PillRow>
-        </Block>
+        {/* Mode */}
+        <div className="bc-filters-group">
+          <h4 className="bc-h4">Mode</h4>
+          <div className="bc-chip-row">
+            <Chip selected={!current.mode} onClick={() => setOne("mode", "")}>Any</Chip>
+            <Chip selected={current.mode === "in-person"} onClick={() => setOne("mode", "in-person")}>In-person</Chip>
+            <Chip selected={current.mode === "online"} onClick={() => setOne("mode", "online")}>Online</Chip>
+          </div>
+        </div>
 
+        {/* Requirement */}
         {reqOptions.length > 0 && (
-          <Block label="Requirement">
+          <div className="bc-filters-group">
+            <h4 className="bc-h4">Requirement</h4>
             <MultiSelect
               options={reqOptions.map((o) => ({ value: o.code, label: o.code, hint: o.description }))}
               selected={current.reqs}
@@ -289,96 +218,78 @@ export default function FilterSidebar({
               onClear={() => clearMulti("reqs")}
               placeholder="Any requirement"
             />
-          </Block>
+          </div>
         )}
 
-        <Block label="Course level">
-          <PillRow>
-            <GlassPill active={!current.level} onClick={() => setOne("level", "")}>
-              Any
-            </GlassPill>
-            <GlassPill active={current.level === "lower"} onClick={() => setOne("level", "lower")}>
-              Lower
-            </GlassPill>
-            <GlassPill active={current.level === "upper"} onClick={() => setOne("level", "upper")}>
-              Upper
-            </GlassPill>
-            <GlassPill active={current.level === "grad"} onClick={() => setOne("level", "grad")}>
-              Grad
-            </GlassPill>
-          </PillRow>
-        </Block>
+        {/* Course level */}
+        <div className="bc-filters-group">
+          <h4 className="bc-h4">Course level</h4>
+          <div className="bc-chip-row">
+            <Chip selected={!current.level} onClick={() => setOne("level", "")}>Any</Chip>
+            <Chip selected={current.level === "lower"} onClick={() => setOne("level", "lower")}>Lower</Chip>
+            <Chip selected={current.level === "upper"} onClick={() => setOne("level", "upper")}>Upper</Chip>
+            <Chip selected={current.level === "grad"} onClick={() => setOne("level", "grad")}>Grad</Chip>
+          </div>
+        </div>
 
-        <Block label="Days">
-          <PillRow>
+        {/* Days */}
+        <div className="bc-filters-group">
+          <h4 className="bc-h4">Days</h4>
+          <div className="bc-chip-row">
             {DAYS.map((d) => (
-              <GlassPill
+              <Chip
                 key={d.code}
-                active={current.days.includes(d.code)}
+                selected={current.days.includes(d.code)}
                 onClick={() => toggleMulti("days", d.code, current.days)}
               >
                 {d.label}
-              </GlassPill>
+              </Chip>
             ))}
-          </PillRow>
-        </Block>
+          </div>
+        </div>
 
-        <Block label="Type">
-          <PillRow>
+        {/* Type */}
+        <div className="bc-filters-group">
+          <h4 className="bc-h4">Type</h4>
+          <div className="bc-chip-row">
             {TYPES.map((t) => (
-              <GlassPill
+              <Chip
                 key={t}
-                active={current.types.includes(t)}
+                selected={current.types.includes(t)}
                 onClick={() => toggleMulti("type", t, current.types)}
               >
                 {t}
-              </GlassPill>
+              </Chip>
             ))}
-          </PillRow>
-        </Block>
+          </div>
+        </div>
 
-        <Block label="Units">
-          <PillRow>
-            <GlassPill active={!current.units} onClick={() => setOne("units", "")}>
-              Any
-            </GlassPill>
+        {/* Units */}
+        <div className="bc-filters-group">
+          <h4 className="bc-h4">Units</h4>
+          <div className="bc-chip-row">
+            <Chip selected={!current.units} onClick={() => setOne("units", "")}>Any</Chip>
             {UNIT_OPTIONS.map((u) => (
-              <GlassPill key={u} active={current.units === u} onClick={() => setOne("units", u)}>
+              <Chip key={u} selected={current.units === u} onClick={() => setOne("units", u)}>
                 {u}
-              </GlassPill>
+              </Chip>
             ))}
-          </PillRow>
-        </Block>
+          </div>
+        </div>
 
-        <Block label="Instructor">
+        {/* Instructor */}
+        <div className="bc-filters-group">
+          <h4 className="bc-h4">Instructor</h4>
           <GlassInput
             type="text"
             placeholder="DeNero"
             value={instructorLocal}
             onChange={(e) => setInstructorLocal(e.target.value)}
           />
-        </Block>
-      </div>
-      <style>{`
-        @media (max-width: 1024px) {
-          .bc-filter-body { display: ${open ? "flex" : "none"} !important; max-height: none !important; }
-        }
-      `}</style>
-    </GlassCard>
+        </div>
+      </div>{/* bc-filters-body */}
+    </Glass>
   );
-}
-
-function Block({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div>
-      <span style={LABEL}>{label}</span>
-      {children}
-    </div>
-  );
-}
-
-function PillRow({ children }: { children: ReactNode }) {
-  return <div style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem" }}>{children}</div>;
 }
 
 function countActive(c: CurrentFilters): number {
@@ -438,80 +349,33 @@ function MultiSelect({
         : `${selected.length} selected`;
 
   return (
-    <div ref={ref} style={{ position: "relative" }}>
+    <div ref={ref} className="bc-multi">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="listbox"
         aria-expanded={open}
-        style={{
-          width: "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          borderRadius: "var(--r-pill)",
-          background: "rgba(0,0,0,0.22)",
-          border: "1px solid var(--glass-border)",
-          padding: "0.55rem 1rem",
-          fontFamily: "var(--font-text)",
-          fontSize: "0.875rem",
-          color: selected.length === 0 ? "var(--glass-text-faint)" : "var(--glass-text)",
-          textAlign: "left",
-          cursor: "pointer",
-        }}
+        className="bc-multi-trigger"
       >
         <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ marginLeft: "0.5rem", flexShrink: 0 }}>
-          <path
-            d="M2 4l4 4 4-4"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
+          <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>
 
       {open && (
-        <div
-          style={{
-            marginTop: "0.4rem",
-            borderRadius: "var(--r-glass-sm)",
-            border: "1px solid var(--glass-border)",
-            background: "rgba(12, 16, 26, 0.85)",
-            backdropFilter: "blur(var(--glass-blur))",
-            WebkitBackdropFilter: "blur(var(--glass-blur))",
-            maxHeight: "16rem",
-            overflowY: "auto",
-            boxShadow: "var(--glass-edge), var(--glass-shadow)",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              padding: "0.55rem 0.85rem",
-              borderBottom: "1px solid var(--glass-border)",
-            }}
-          >
-            <span style={{ fontSize: "0.625rem", textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--glass-text-faint)" }}>
+        <div className="bc-multi-menu">
+          <div style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            padding: "8px 12px", borderBottom: "0.5px solid var(--glass-border)",
+          }}>
+            <span style={{ fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--muted)" }}>
               {selected.length} selected
             </span>
             <button
               type="button"
-              onClick={() => {
-                onClear();
-                setOpen(false);
-              }}
-              style={{
-                background: "transparent",
-                border: "none",
-                cursor: "pointer",
-                color: "var(--glass-text-faint)",
-                fontSize: "0.7rem",
-                fontFamily: "var(--font-text)",
-              }}
+              onClick={() => { onClear(); setOpen(false); }}
+              className="bc-filters-reset"
             >
               Clear
             </button>
@@ -526,41 +390,11 @@ function MultiSelect({
                     role="option"
                     aria-selected={checked}
                     onClick={() => onToggle(o.value)}
-                    style={{
-                      width: "100%",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "0.55rem",
-                      padding: "0.55rem 0.85rem",
-                      background: "transparent",
-                      border: "none",
-                      cursor: "pointer",
-                      color: "var(--glass-text)",
-                      fontFamily: "var(--font-text)",
-                      fontSize: "0.875rem",
-                      textAlign: "left",
-                    }}
+                    className="bc-multi-row"
                   >
-                    <span
-                      aria-hidden="true"
-                      style={{
-                        width: "16px",
-                        height: "16px",
-                        borderRadius: "4px",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        background: checked ? "#fff" : "transparent",
-                        border: `1px solid ${checked ? "#fff" : "var(--glass-border-strong)"}`,
-                        color: checked ? "#000" : "transparent",
-                      }}
-                    >
-                      <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                        <path d="M2 5l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    </span>
+                    <span aria-hidden="true" className="check" />
                     <span style={{ flex: 1 }}>{o.label}</span>
-                    {o.hint && <span style={{ fontSize: "0.625rem", color: "var(--glass-text-faint)" }}>{o.hint}</span>}
+                    {o.hint && <span style={{ fontSize: "10px", color: "var(--muted)" }}>{o.hint}</span>}
                   </button>
                 </li>
               );

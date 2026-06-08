@@ -1,15 +1,5 @@
 import Link from "next/link";
-import {  GlassCard, GlassButton } from "@/components/glass";
-import GlassNav from "@/components/glass/GlassNav";
-
-const WRAP: React.CSSProperties = { maxWidth: "480px", margin: "0 auto", padding: "5rem 1.5rem 4rem" };
-const display = (size: string, weight = 600): React.CSSProperties => ({
-  fontFamily: "var(--font-display)",
-  fontWeight: weight,
-  letterSpacing: "var(--tracking-display)",
-  fontSize: size,
-});
-const text: React.CSSProperties = { fontFamily: "var(--font-text)", color: "var(--glass-text-muted)" };
+import { Glass, Button } from "@/components/glass";
 
 const REASONS: Record<string, { title: string; body: string }> = {
   not_berkeley: {
@@ -34,19 +24,19 @@ export default async function AuthErrorPage({
   };
 
   return (
-    <>
-      <GlassNav />
-      <main style={WRAP}>
-        <GlassCard elevation={2} radius="lg" padding="2.25rem">
-          <h1 style={{ margin: 0, ...display("1.85rem"), color: "var(--glass-text)" }}>{copy.title}</h1>
-          <p style={{ margin: "0.75rem 0 1.75rem", ...text, lineHeight: 1.5 }}>{copy.body}</p>
-          <Link href="/" style={{ textDecoration: "none" }}>
-            <GlassButton variant="primary" size="md">
-              Back to home
-            </GlassButton>
+    <div className="bc-auth-shell">
+      <Glass className="bc-auth-card">
+        <h1>{copy.title}</h1>
+        <div className="bc-auth-error">{copy.body}</div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" as const }}>
+          <Link href="/auth/signin" style={{ textDecoration: "none" }}>
+            <Button variant="primary">Try again</Button>
           </Link>
-        </GlassCard>
-      </main>
-    </>
+          <Link href="/" style={{ textDecoration: "none" }}>
+            <Button>Back to home</Button>
+          </Link>
+        </div>
+      </Glass>
+    </div>
   );
 }

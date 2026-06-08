@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import {  GlassCard, StatTile } from "@/components/glass";
+import { Glass, Button, Chip, StatTile } from "@/components/glass";
 import GlassNav from "@/components/glass/GlassNav";
 import type { Section } from "@/lib/types";
 import { sortTermsByYear, isRealTerm } from "@/lib/terms";
@@ -9,16 +9,6 @@ import { sortTermsByYear, isRealTerm } from "@/lib/terms";
 export const dynamic = "force-dynamic";
 
 const DEFAULT_TERM = "Fall 2026";
-
-const WRAP: React.CSSProperties = { maxWidth: "1080px", margin: "0 auto", padding: "1.75rem 1.5rem 4rem" };
-const display = (size: string, weight = 600): React.CSSProperties => ({
-  fontFamily: "var(--font-display)",
-  fontWeight: weight,
-  letterSpacing: "var(--tracking-display)",
-  fontSize: size,
-});
-const text: React.CSSProperties = { fontFamily: "var(--font-text)", color: "var(--glass-text-muted)" };
-const mono: React.CSSProperties = { fontFamily: "var(--font-mono-sf)" };
 
 type CourseAgg = {
   course_code: string;
@@ -50,12 +40,12 @@ export default async function DeptPage({
 
   if (!termRow) {
     return (
-      <>
+      <main className="bc-page">
         <GlassNav />
-        <main style={WRAP}>
-          <p style={{ color: "var(--glass-text-muted)", ...text }}>Term &ldquo;{termName}&rdquo; not found.</p>
-        </main>
-      </>
+        <div style={{ maxWidth: 1080, margin: "0 auto", padding: "40px 24px" }}>
+          <p style={{ color: "var(--muted)" }}>Term &ldquo;{termName}&rdquo; not found.</p>
+        </div>
+      </main>
     );
   }
 
@@ -107,9 +97,9 @@ export default async function DeptPage({
 
     if (s.instructors) {
       for (const part of s.instructors.split(/[;,]/)) {
-        const name = part.trim();
-        if (!name || /^(staff|tba)$/i.test(name)) continue;
-        instructorCounts.set(name, (instructorCounts.get(name) ?? 0) + 1);
+        const nm = part.trim();
+        if (!nm || /^(staff|tba)$/i.test(nm)) continue;
+        instructorCounts.set(nm, (instructorCounts.get(nm) ?? 0) + 1);
       }
     }
   }
@@ -121,72 +111,43 @@ export default async function DeptPage({
   const subjectName = sections[0].subject_name ?? code;
 
   return (
-    <>
+    <main className="bc-page">
       <GlassNav />
-      <section style={WRAP}>
+
+      <Glass className="bc-dept-header">
         <Link
           href="/find"
-          style={{ ...text, fontSize: "0.875rem", color: "var(--glass-text-faint)", textDecoration: "none" }}
+          style={{ fontSize: 13, color: "var(--muted)", textDecoration: "none", display: "block", marginBottom: 16 }}
         >
           ← Back to search
         </Link>
-
-        <div style={{ margin: "1rem 0 1.5rem" }}>
-          <p
-            style={{
-              margin: 0,
-              fontSize: "0.7rem",
-              textTransform: "uppercase",
-              letterSpacing: "0.08em",
-              color: "var(--glass-text-faint)",
-              fontFamily: "var(--font-text)",
-            }}
-          >
-            Department
-          </p>
-          <h1 style={{ margin: "0.3rem 0 0", ...display("2rem"), color: "var(--glass-text)" }}>{subjectName}</h1>
-          <p style={{ margin: "0.4rem 0 0", ...text }}>
-            {sections.length} sections · {courses.length} courses ·{" "}
-            <span style={{ color: totalOpen > 0 ? "var(--cap-open-text)" : "var(--glass-text-muted)" }}>
-              {totalOpen} open seats
-            </span>{" "}
-            · {termRow.name}
-          </p>
-        </div>
-
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", marginBottom: "2rem" }}>
-          {sortTermsByYear((terms ?? []).filter((t) => isRealTerm(t.name))).map((t) => {
-            const active = t.name === termName;
-            return (
-              <Link
-                key={t.term_id}
-                href={`/dept/${encodeURIComponent(code)}?term=${encodeURIComponent(t.name)}`}
-                style={{
-                  padding: "0.3rem 0.85rem",
-                  borderRadius: "var(--r-pill)",
-                  fontSize: "0.75rem",
-                  fontWeight: 600,
-                  fontFamily: "var(--font-text)",
-                  textDecoration: "none",
-                  background: active
-                    ? "linear-gradient(180deg, rgba(74,144,217,0.5), rgba(0,50,98,0.6))"
-                    : "var(--glass-1)",
-                  color: active ? "#fff" : "var(--glass-text-muted)",
-                  border: active ? "1px solid rgba(120,180,240,0.55)" : "1px solid var(--glass-border)",
-                }}
-              >
+        <div className="bc-eyebrow">Department</div>
+        <h1 className="bc-dept-name">{subjectName}</h1>
+        <p className="bc-dept-summary">
+          {sections.length} sections · {courses.length} courses ·{" "}
+          <span style={{ color: totalOpen > 0 ? "var(--cap-open-text)" : "var(--muted)" }}>
+            {totalOpen} open seats
+          </span>{" "}
+          · {termRow.name}
+        </p>
+        <div className="bc-dept-breadth">
+          {sortTermsByYear((terms ?? []).filter((t) => isRealTerm(t.name))).map((t) => (
+            <Link key={t.term_id} href={`/dept/${encodeURIComponent(code)}?term=${encodeURIComponent(t.name)}`} style={{ textDecoration: "none" }}>
+              <Chip selected={t.name === termName} type="button" onClick={undefined}>
                 {t.name}
-              </Link>
-            );
-          })}
+              </Chip>
+            </Link>
+          ))}
         </div>
+      </Glass>
 
+      <div style={{ maxWidth: 1080, margin: "0 auto", padding: "16px 24px" }}>
         <div
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-            gap: "1rem",
-            marginBottom: "2rem",
+            gap: 16,
+            marginBottom: 24,
           }}
         >
           <StatTile value={sections.length} label="Sections" />
@@ -203,84 +164,63 @@ export default async function DeptPage({
         </div>
 
         <div
-          style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "1.25rem" }}
+          style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 20 }}
         >
           <div>
-            <h2 style={{ margin: "0 0 0.85rem", ...display("1.25rem"), color: "var(--glass-text)" }}>
+            <h2 style={{ margin: "0 0 12px", fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 18, color: "var(--ink-strong)", letterSpacing: "var(--tracking-display)" }}>
               Courses offered
             </h2>
-            <GlassCard elevation={1} radius="lg" padding={0}>
+            <Glass as="section" className="bc-results">
               {courses.map((c, i) => (
                 <Link
                   key={c.course_code}
                   href={`/find?term=${encodeURIComponent(termRow.name)}&q=${encodeURIComponent(c.course_code)}`}
-                  style={{
-                    display: "block",
-                    padding: "0.85rem 1rem",
-                    borderTop: i === 0 ? "none" : "1px solid var(--glass-border)",
-                    textDecoration: "none",
-                    color: "var(--glass-text)",
-                  }}
+                  className="bc-row"
+                  style={{ textDecoration: "none", color: "inherit", display: "block" }}
                 >
-                  <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "0.85rem" }}>
+                  <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12 }}>
                     <div style={{ minWidth: 0 }}>
-                      <p style={{ margin: 0, fontFamily: "var(--font-text)", fontWeight: 600 }}>{c.course_code}</p>
-                      <p
-                        style={{
-                          margin: "0.2rem 0 0",
-                          fontSize: "0.75rem",
-                          color: "var(--glass-text-faint)",
-                          whiteSpace: "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                        }}
-                      >
-                        {c.sample_title}
-                      </p>
+                      <div className="bc-row-code">{c.course_code}</div>
+                      <div className="bc-row-meta">{c.sample_title}</div>
                     </div>
-                    <div style={{ textAlign: "right", flexShrink: 0, fontSize: "0.75rem", ...mono }}>
-                      <p style={{ margin: 0, color: "var(--glass-text-muted)" }}>{c.section_count} sec</p>
-                      <p style={{ margin: 0, color: c.open_seats > 0 ? "var(--cap-open-text)" : "var(--glass-text-faint)" }}>
+                    <div style={{ textAlign: "right", flexShrink: 0, fontSize: 12, fontFamily: "var(--font-mono-sf)", color: "var(--muted)" }}>
+                      <div>{c.section_count} sec</div>
+                      <div style={{ color: c.open_seats > 0 ? "var(--cap-open-text)" : "var(--muted)" }}>
                         {c.open_seats} open
-                      </p>
+                      </div>
                     </div>
                   </div>
                 </Link>
               ))}
-            </GlassCard>
+            </Glass>
           </div>
 
           <div>
-            <h2 style={{ margin: "0 0 0.85rem", ...display("1.25rem"), color: "var(--glass-text)" }}>Top instructors</h2>
+            <h2 style={{ margin: "0 0 12px", fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 18, color: "var(--ink-strong)", letterSpacing: "var(--tracking-display)" }}>
+              Top instructors
+            </h2>
             {topInstructors.length === 0 ? (
-              <p style={{ ...text, fontSize: "0.875rem" }}>No instructors found in this term yet.</p>
+              <p style={{ color: "var(--muted)", fontSize: 13 }}>No instructors found in this term yet.</p>
             ) : (
-              <GlassCard elevation={1} radius="lg" padding={0}>
-                {topInstructors.map(([name, count], i) => (
+              <Glass as="section" className="bc-results">
+                {topInstructors.map(([nm, count]) => (
                   <Link
-                    key={name}
-                    href={`/instructor/${encodeURIComponent(name)}?term=${encodeURIComponent(termRow.name)}`}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      padding: "0.85rem 1rem",
-                      borderTop: i === 0 ? "none" : "1px solid var(--glass-border)",
-                      textDecoration: "none",
-                      color: "var(--glass-text)",
-                    }}
+                    key={nm}
+                    href={`/instructor/${encodeURIComponent(nm)}?term=${encodeURIComponent(termRow.name)}`}
+                    className="bc-row"
+                    style={{ textDecoration: "none", color: "inherit", display: "flex", alignItems: "center", justifyContent: "space-between" }}
                   >
-                    <span style={{ fontFamily: "var(--font-text)" }}>{name}</span>
-                    <span style={{ ...mono, fontSize: "0.8125rem", color: "var(--glass-text-faint)" }}>
+                    <div className="bc-row-code">{nm}</div>
+                    <span style={{ fontFamily: "var(--font-mono-sf)", fontSize: 12, color: "var(--muted)", flexShrink: 0 }}>
                       {count} section{count === 1 ? "" : "s"}
                     </span>
                   </Link>
                 ))}
-              </GlassCard>
+              </Glass>
             )}
           </div>
         </div>
-      </section>
-    </>
+      </div>
+    </main>
   );
 }

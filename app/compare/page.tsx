@@ -1,21 +1,11 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import {  GlassCard, GlassButton, GlassInput, SeatCapsule } from "@/components/glass";
+import { Glass, Button, SeatPill } from "@/components/glass";
 import GlassNav from "@/components/glass/GlassNav";
 import type { Section } from "@/lib/types";
 import { intersectDays, parseMeetingDays, parseMeetingTime, sectionsConflict } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
-
-const WRAP: React.CSSProperties = { maxWidth: "1080px", margin: "0 auto", padding: "1.75rem 1.5rem 4rem" };
-const display = (size: string, weight = 600): React.CSSProperties => ({
-  fontFamily: "var(--font-display)",
-  fontWeight: weight,
-  letterSpacing: "var(--tracking-display)",
-  fontSize: size,
-});
-const text: React.CSSProperties = { fontFamily: "var(--font-text)", color: "var(--glass-text-muted)" };
-const mono: React.CSSProperties = { fontFamily: "var(--font-mono-sf)" };
 
 function parseCcn(v: string | undefined): number | null {
   if (!v) return null;
@@ -42,31 +32,37 @@ export default async function ComparePage({
   const sb = bCcn ? await fetchSection(supabase, bCcn) : null;
 
   return (
-    <>
-      <GlassNav />
-      <section style={WRAP}>
-        <h1 style={{ margin: 0, ...display("2rem"), color: "var(--glass-text)" }}>Compare sections</h1>
-        <p style={{ margin: "0.4rem 0 2rem", ...text }}>Two CCNs side-by-side, with a conflict verdict.</p>
+    <main className="bc-page">
+      <GlassNav active="/compare" />
 
-        <form
-          method="get"
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr auto",
-            gap: "0.75rem",
-            marginBottom: "2rem",
-          }}
-        >
-          <GlassInput name="a" type="text" inputMode="numeric" pattern="[0-9]*" defaultValue={aCcn ?? ""} placeholder="First CCN" />
-          <GlassInput name="b" type="text" inputMode="numeric" pattern="[0-9]*" defaultValue={bCcn ?? ""} placeholder="Second CCN" />
-          <GlassButton type="submit" variant="primary" size="md">
-            Compare
-          </GlassButton>
+      <Glass className="bc-hero">
+        <div className="bc-eyebrow">Compare · Side-by-side</div>
+        <h1 className="bc-h1">Compare <span className="bc-h1-accent">sections</span>.</h1>
+        <form className="bc-hero-form" method="get" action="/compare">
+          <input
+            name="a"
+            className="bc-input"
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            defaultValue={aCcn ?? ""}
+            placeholder="First CCN"
+          />
+          <input
+            name="b"
+            className="bc-input"
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            defaultValue={bCcn ?? ""}
+            placeholder="Second CCN"
+          />
+          <Button type="submit" variant="primary">Compare</Button>
         </form>
+      </Glass>
 
-        {(aCcn || bCcn) && <CompareResult a={sa} b={sb} aCcn={aCcn} bCcn={bCcn} />}
-      </section>
-    </>
+      {(aCcn || bCcn) && <CompareResult a={sa} b={sb} aCcn={aCcn} bCcn={bCcn} />}
+    </main>
   );
 }
 
@@ -93,44 +89,29 @@ function CompareResult({
     const ta = parseMeetingTime(a.meeting_time);
     const tb = parseMeetingTime(b.meeting_time);
     if (sectionsConflict(a, b)) {
-      verdict = { kind: "conflict", text: `CONFLICT on ${overlap.join(", ")}` };
+      verdict = { kind: "conflict", text: `Time conflict on ${overlap.join(", ")}` };
     } else if (overlap.length === 0) {
-      verdict = { kind: "ok", text: "No overlapping days" };
+      verdict = { kind: "ok", text: "No time conflict" };
     } else if (!ta || !tb) {
       verdict = { kind: "warn", text: "One section is async — verify manually" };
     } else {
-      verdict = { kind: "ok", text: `Same days (${overlap.join(", ")}) but non-overlapping times` };
+      verdict = { kind: "ok", text: `Same day, different time` };
     }
   }
 
-  const verdictStyle = verdict
-    ? verdict.kind === "conflict"
-      ? {
-          background: "var(--cap-conflict-fill)",
-          color: "var(--cap-conflict-text)",
-          border: "1px solid var(--cap-conflict-border)",
-          boxShadow: "var(--cap-conflict-glow)",
-        }
-      : verdict.kind === "warn"
-        ? {
-            background: "var(--cap-warn-fill)",
-            color: "var(--cap-warn-text)",
-            border: "1px solid var(--cap-warn-border)",
-          }
-        : {
-            background: "var(--cap-open-fill)",
-            color: "var(--cap-open-text)",
-            border: "1px solid var(--cap-open-border)",
-            boxShadow: "var(--cap-open-glow)",
-          }
-    : {};
+  const verdictClass =
+    verdict?.kind === "conflict"
+      ? "bc-verdict bc-verdict--conflict"
+      : verdict?.kind === "warn"
+        ? "bc-verdict bc-verdict--warn"
+        : "bc-verdict";
 
   return (
-    <>
+    <div style={{ maxWidth: 1080, margin: "0 auto", padding: "0 24px 60px" }}>
       {missing.length > 0 && (
-        <p style={{ ...text, color: "var(--cap-warn-text)", fontSize: "0.875rem", marginBottom: "1rem" }}>
+        <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 12 }}>
           {missing.join(" · ")}. Has it been synced?{" "}
-          <Link href="/find" style={{ color: "var(--glass-text)", textDecoration: "underline" }}>
+          <Link href="/find" style={{ color: "var(--ink-strong)", textDecoration: "underline" }}>
             search
           </Link>
           .
@@ -138,61 +119,61 @@ function CompareResult({
       )}
 
       {a && b && verdict && (
-        <div
-          style={{
-            padding: "0.85rem 1.2rem",
-            borderRadius: "var(--r-pill)",
-            fontFamily: "var(--font-text)",
-            fontWeight: 600,
-            fontSize: "0.95rem",
-            marginBottom: "1.5rem",
-            display: "inline-block",
-            ...verdictStyle,
-          }}
-        >
+        <div className={verdictClass} style={{ marginBottom: 20, display: "inline-block" }}>
           {verdict.text}
         </div>
       )}
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "1.25rem" }}>
+      <div className="bc-compare-grid">
         <CompareCard s={a} />
         <CompareCard s={b} />
       </div>
-    </>
+    </div>
   );
 }
 
 function CompareCard({ s }: { s: Section | null }) {
   if (!s) {
     return (
-      <GlassCard elevation={1} radius="lg" padding="1.5rem 1.5rem 2rem" specular={false}>
-        <p style={{ margin: 0, color: "var(--glass-text-faint)", textAlign: "center" }}>Enter a CCN above.</p>
-      </GlassCard>
+      <Glass className="bc-compare-panel">
+        <p style={{ margin: 0, color: "var(--muted)", textAlign: "center" }}>Enter a CCN above.</p>
+      </Glass>
     );
   }
   return (
-    <GlassCard elevation={2} radius="lg" padding="1.5rem">
-      <div style={{ display: "flex", justifyContent: "space-between", gap: "0.75rem", alignItems: "flex-start" }}>
+    <Glass className="bc-compare-panel">
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
         <div style={{ minWidth: 0 }}>
-          <p style={{ margin: 0, ...mono, fontSize: "0.7rem", color: "var(--glass-text-faint)" }}>CCN {s.ccn}</p>
+          <p style={{ margin: 0, fontSize: 11, fontFamily: "var(--font-mono-sf)", color: "var(--muted)" }}>
+            CCN {s.ccn}
+          </p>
           <Link
             href={`/class/${s.ccn}`}
-            style={{ ...display("1.25rem"), color: "var(--glass-text)", textDecoration: "none", display: "inline-block", marginTop: "0.2rem" }}
+            style={{
+              fontFamily: "var(--font-display)",
+              fontWeight: 600,
+              fontSize: 20,
+              color: "var(--ink-strong)",
+              textDecoration: "none",
+              display: "inline-block",
+              marginTop: 4,
+              letterSpacing: "var(--tracking-display)",
+            }}
           >
             {s.course_code} {s.section_type} {s.section_number}
           </Link>
-          <p style={{ margin: "0.3rem 0 0", ...text, color: "var(--glass-text)", fontSize: "0.95rem" }}>{s.title}</p>
+          <p style={{ margin: "4px 0 0", fontSize: 15, color: "var(--ink-strong)" }}>{s.title}</p>
         </div>
-        <SeatCapsule seats={s.open_seats ?? 0} />
+        <SeatPill open={s.open_seats ?? 0} />
       </div>
       <dl
         style={{
           display: "grid",
           gridTemplateColumns: "1fr 1fr",
-          gap: "0.65rem 1rem",
-          marginTop: "1.25rem",
+          gap: "10px 16px",
+          marginTop: 20,
           fontFamily: "var(--font-text)",
-          fontSize: "0.875rem",
+          fontSize: 13,
         }}
       >
         <Field label="Instructors" value={s.instructors} colSpan />
@@ -202,7 +183,7 @@ function CompareCard({ s }: { s: Section | null }) {
         <Field label="Units" value={s.units} />
         <Field label="Open seats" value={s.open_seats} />
       </dl>
-    </GlassCard>
+    </Glass>
   );
 }
 
@@ -219,15 +200,15 @@ function Field({
     <div style={colSpan ? { gridColumn: "1 / -1" } : undefined}>
       <dt
         style={{
-          fontSize: "0.625rem",
+          fontSize: 10,
           textTransform: "uppercase",
           letterSpacing: "0.08em",
-          color: "var(--glass-text-faint)",
+          color: "var(--muted)",
         }}
       >
         {label}
       </dt>
-      <dd style={{ margin: "0.25rem 0 0", color: "var(--glass-text)" }}>
+      <dd style={{ margin: "4px 0 0", color: "var(--ink-strong)" }}>
         {value === null || value === undefined || value === "" ? "—" : value}
       </dd>
     </div>

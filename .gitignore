@@ -36,6 +36,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# superpowers brainstorm scratchpad (visual companion server output)
+/.superpowers/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

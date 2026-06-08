@@ -1,21 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import {  GlassCard } from "@/components/glass";
+import { Glass, Chip, SeatPill } from "@/components/glass";
 import GlassNav from "@/components/glass/GlassNav";
 import type { Section } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
-
-const WRAP: React.CSSProperties = { maxWidth: "1080px", margin: "0 auto", padding: "1.75rem 1.5rem 4rem" };
-const display = (size: string, weight = 600): React.CSSProperties => ({
-  fontFamily: "var(--font-display)",
-  fontWeight: weight,
-  letterSpacing: "var(--tracking-display)",
-  fontSize: size,
-});
-const text: React.CSSProperties = { fontFamily: "var(--font-text)", color: "var(--glass-text-muted)" };
-const mono: React.CSSProperties = { fontFamily: "var(--font-mono-sf)" };
 
 export default async function InstructorPage({
   params,
@@ -63,158 +53,135 @@ export default async function InstructorPage({
     byCourse.get(key)!.push(s);
   }
 
-  return (
-    <>
-      <GlassNav />
-      <section style={WRAP}>
-        <Link
-          href="/find"
-          style={{ ...text, fontSize: "0.875rem", color: "var(--glass-text-faint)", textDecoration: "none" }}
-        >
-          ← Back to search
-        </Link>
+  // Split into current (active/filtered) and past terms
+  const DEFAULT_TERM = "Fall 2026";
+  const currentTermName = activeTerm || DEFAULT_TERM;
+  const currentSections = sections.filter((s) => termById.get(s.term_id ?? "") === currentTermName);
+  const pastSections = activeTerm
+    ? []
+    : sections.filter((s) => termById.get(s.term_id ?? "") !== currentTermName);
 
-        <div style={{ margin: "1rem 0 1.5rem" }}>
-          <p
-            style={{
-              margin: 0,
-              fontSize: "0.7rem",
-              textTransform: "uppercase",
-              letterSpacing: "0.08em",
-              color: "var(--glass-text-faint)",
-              fontFamily: "var(--font-text)",
-            }}
+  const pastByCourse = new Map<string, Section[]>();
+  for (const s of pastSections) {
+    const key = `${termById.get(s.term_id ?? "") ?? "unknown"} · ${s.course_code ?? "(no course)"}`;
+    if (!pastByCourse.has(key)) pastByCourse.set(key, []);
+    pastByCourse.get(key)!.push(s);
+  }
+
+  return (
+    <main className="bc-page">
+      <GlassNav />
+
+      <Glass className="bc-instructor-banner">
+        <div className="bc-instructor-avatar" aria-hidden />
+        <div>
+          <Link
+            href="/find"
+            style={{ fontSize: 13, color: "var(--muted)", textDecoration: "none", display: "block", marginBottom: 8 }}
           >
-            Instructor
-          </p>
-          <h1 style={{ margin: "0.3rem 0 0", ...display("2rem"), color: "var(--glass-text)" }}>{name}</h1>
-          <p style={{ margin: "0.4rem 0 0", ...text }}>
+            ← Back to search
+          </Link>
+          <h1 className="bc-instructor-name">{name}</h1>
+          <p className="bc-instructor-meta">
             {sections.length} section{sections.length === 1 ? "" : "s"} · {distinctCourses.length} course
             {distinctCourses.length === 1 ? "" : "s"} · {distinctSubjects.length} subject
             {distinctSubjects.length === 1 ? "" : "s"}
             {activeTerm ? ` · ${activeTerm}` : ""}
           </p>
         </div>
+      </Glass>
 
+      <div style={{ maxWidth: 1080, margin: "0 auto", padding: "0 24px 60px" }}>
         {distinctTerms.length > 1 && (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", marginBottom: "2rem" }}>
-            <TermPill href={`/instructor/${encodeURIComponent(name)}`} active={!activeTerm}>
-              All terms
-            </TermPill>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, margin: "16px 0" }}>
+            <Link href={`/instructor/${encodeURIComponent(name)}`} style={{ textDecoration: "none" }}>
+              <Chip selected={!activeTerm} type="button" onClick={undefined}>All terms</Chip>
+            </Link>
             {distinctTerms.map((t) => (
-              <TermPill
+              <Link
                 key={t}
                 href={`/instructor/${encodeURIComponent(name)}?term=${encodeURIComponent(t)}`}
-                active={activeTerm === t}
+                style={{ textDecoration: "none" }}
               >
-                {t}
-              </TermPill>
+                <Chip selected={activeTerm === t} type="button" onClick={undefined}>{t}</Chip>
+              </Link>
             ))}
           </div>
         )}
 
         {sections.length === 0 ? (
-          <GlassCard elevation={1} radius="lg" padding="3rem 1.5rem" specular={false}>
-            <p style={{ margin: 0, textAlign: "center", color: "var(--glass-text)" }}>
-              No sections found for {name}.
-            </p>
-            <p style={{ margin: "0.5rem 0 0", textAlign: "center", ...text, fontSize: "0.875rem" }}>
+          <Glass style={{ padding: "40px 24px", textAlign: "center" as const }}>
+            <p style={{ margin: 0, color: "var(--ink-strong)" }}>No sections found for {name}.</p>
+            <p style={{ margin: "8px 0 0", fontSize: 13, color: "var(--muted)" }}>
               Try searching just a last name, or pick a different term.
             </p>
-          </GlassCard>
+          </Glass>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-            {[...byCourse.entries()].map(([course, items]) => (
-              <GlassCard key={course} elevation={1} radius="lg" padding={0}>
-                <div
-                  style={{
-                    padding: "0.85rem 1.25rem",
-                    borderBottom: "1px solid var(--glass-border)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                  }}
-                >
-                  <h2 style={{ margin: 0, ...display("1.1rem"), color: "var(--glass-text)" }}>{course}</h2>
-                  <span style={{ fontSize: "0.7rem", color: "var(--glass-text-faint)", ...mono }}>
-                    {items.length} section{items.length === 1 ? "" : "s"}
-                  </span>
-                </div>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "var(--font-text)", fontSize: "0.875rem" }}>
-                  <tbody>
-                    {items.map((s, i) => (
-                      <tr key={s.ccn} style={{ borderTop: i === 0 ? "none" : "1px solid var(--glass-border)" }}>
-                        <td style={{ padding: "0.55rem 1.25rem 0.55rem 1.25rem", ...mono, color: "var(--glass-text-faint)" }}>
-                          <Link href={`/class/${s.ccn}`} style={{ color: "var(--glass-text-faint)", textDecoration: "none" }}>
-                            {s.ccn}
-                          </Link>
-                        </td>
-                        <td style={{ padding: "0.55rem 0.5rem", color: "var(--glass-text)" }}>
-                          {s.section_type} {s.section_number}
-                        </td>
-                        <td
-                          style={{
-                            padding: "0.55rem 0.5rem",
-                            color: "var(--glass-text-muted)",
-                            maxWidth: "30ch",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          {s.title}
-                        </td>
-                        <td style={{ padding: "0.55rem 0.5rem", color: "var(--glass-text-muted)", whiteSpace: "nowrap" }}>
-                          {s.meeting_days ?? "—"}
-                        </td>
-                        <td style={{ padding: "0.55rem 0.5rem", color: "var(--glass-text-muted)", whiteSpace: "nowrap" }}>
-                          {s.meeting_time ?? "async"}
-                        </td>
-                        <td style={{ padding: "0.55rem 1.25rem 0.55rem 0.5rem", textAlign: "right", whiteSpace: "nowrap" }}>
-                          <span
-                            style={{
-                              ...mono,
-                              color: s.open_seats > 0 ? "var(--cap-open-text)" : "var(--glass-text-faint)",
-                            }}
-                          >
-                            {s.open_seats}
-                          </span>
-                          <span style={{ fontSize: "0.625rem", color: "var(--glass-text-faint)", marginLeft: "0.35rem" }}>
-                            open
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </GlassCard>
-            ))}
-          </div>
-        )}
-      </section>
-    </>
-  );
-}
+          <>
+            {currentSections.length > 0 && (
+              <div style={{ marginBottom: 20 }}>
+                <h2 style={{ margin: "16px 0 12px", fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 17, color: "var(--ink-strong)", letterSpacing: "var(--tracking-display)" }}>
+                  {currentTermName}
+                </h2>
+                <Glass as="section" className="bc-results">
+                  {currentSections.map((s) => {
+                    const courseLine = [s.course_code, s.section_type, s.section_number].filter(Boolean).join(" ");
+                    const meta = [
+                      [s.meeting_days, s.meeting_time].filter(Boolean).join(" "),
+                      s.location,
+                      s.units ? `${s.units} units` : null,
+                      `CCN ${s.ccn}`,
+                    ].filter(Boolean).join(" · ");
+                    return (
+                      <article key={s.ccn} className="bc-row">
+                        <Link href={`/class/${s.ccn}`}>
+                          <div className="bc-row-code">{courseLine}{s.title ? ` — ${s.title}` : ""}</div>
+                          <div className="bc-row-meta">{meta}</div>
+                        </Link>
+                        <SeatPill open={s.open_seats ?? 0} />
+                      </article>
+                    );
+                  })}
+                </Glass>
+              </div>
+            )}
 
-function TermPill({ href, active, children }: { href: string; active: boolean; children: React.ReactNode }) {
-  return (
-    <Link
-      href={href}
-      style={{
-        padding: "0.3rem 0.85rem",
-        borderRadius: "var(--r-pill)",
-        fontSize: "0.75rem",
-        fontWeight: 600,
-        fontFamily: "var(--font-text)",
-        textDecoration: "none",
-        background: active
-          ? "linear-gradient(180deg, rgba(74,144,217,0.5), rgba(0,50,98,0.6))"
-          : "var(--glass-1)",
-        color: active ? "#fff" : "var(--glass-text-muted)",
-        border: active ? "1px solid rgba(120,180,240,0.55)" : "1px solid var(--glass-border)",
-      }}
-    >
-      {children}
-    </Link>
+            {pastSections.length > 0 && (
+              <Glass as="details" className="bc-past-terms">
+                <summary>
+                  Past terms
+                  <span style={{ fontFamily: "var(--font-mono-sf)", fontSize: 11, color: "var(--muted)", fontWeight: 400 }}>
+                    {pastSections.length} section{pastSections.length === 1 ? "" : "s"}
+                  </span>
+                </summary>
+                <div className="bc-past-terms-body">
+                  {[...pastByCourse.entries()].map(([label, items]) => (
+                    <div key={label} style={{ marginBottom: 16 }}>
+                      <h3 style={{ margin: "0 0 8px", fontSize: 12, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase" as const, letterSpacing: "0.06em" }}>
+                        {label}
+                      </h3>
+                      {items.map((s) => {
+                        const courseLine = [s.course_code, s.section_type, s.section_number].filter(Boolean).join(" ");
+                        return (
+                          <div key={s.ccn} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", borderBottom: "0.5px solid var(--hairline)", fontSize: 13, color: "var(--ink-strong)" }}>
+                            <div>
+                              <Link href={`/class/${s.ccn}`} style={{ color: "inherit", textDecoration: "none", fontWeight: 600 }}>{courseLine}</Link>
+                              {s.title ? <span style={{ color: "var(--muted)", marginLeft: 8 }}>{s.title}</span> : null}
+                            </div>
+                            <span style={{ fontFamily: "var(--font-mono-sf)", fontSize: 11, color: "var(--muted)", marginLeft: 12 }}>
+                              {s.meeting_days ?? "—"} {s.meeting_time ?? ""}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
+              </Glass>
+            )}
+          </>
+        )}
+      </div>
+    </main>
   );
 }

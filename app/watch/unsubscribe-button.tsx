@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { Button } from "@/components/glass";
 
 export default function UnsubscribeButton({ id }: { id: string }) {
   const router = useRouter();
@@ -16,21 +17,8 @@ export default function UnsubscribeButton({ id }: { id: string }) {
   }
 
   return (
-    <button
-      type="button"
-      onClick={unsub}
-      disabled={busy}
-      style={{
-        background: "transparent",
-        border: "none",
-        cursor: "pointer",
-        color: "var(--glass-text-faint)",
-        fontFamily: "var(--font-text)",
-        fontSize: "0.8125rem",
-        opacity: busy ? 0.5 : 1,
-      }}
-    >
+    <Button type="button" size="sm" onClick={unsub} disabled={busy}>
       Unwatch
-    </button>
+    </Button>
   );
 }

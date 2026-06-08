@@ -1,43 +1,33 @@
 import type { CSSProperties } from "react";
-import GlassCard from "./GlassCard";
+import { Glass } from "./Glass";
 
-export default function StatTile({
-  value,
-  label,
-  accent,
-  tint,
-  style,
-}: {
+type Props = {
   value: string | number;
   label: string;
   accent?: string;
   tint?: string;
   style?: CSSProperties;
-}) {
+};
+
+export function StatTile({ value, label, accent, tint, style }: Props) {
   return (
-    <GlassCard elevation={2} radius="md" tint={tint} padding="1.1rem 1.25rem" style={style}>
-      <div
-        style={{
-          fontFamily: "var(--font-display)",
-          fontSize: "2.5rem",
-          fontWeight: 600,
-          lineHeight: 1,
-          letterSpacing: "var(--tracking-display)",
-          color: accent || "var(--glass-text)",
-        }}
-      >
-        {value}
-      </div>
-      <div
-        style={{
-          marginTop: "0.45rem",
-          fontSize: "0.8125rem",
-          fontWeight: 500,
-          color: "var(--glass-text-muted)",
-        }}
-      >
-        {label}
-      </div>
-    </GlassCard>
+    <Glass className="bc-stat" style={style}>
+      {tint && (
+        <div
+          aria-hidden
+          style={{
+            position: "absolute",
+            inset: 0,
+            background: `radial-gradient(120% 80% at 50% 0%, ${tint} 0%, transparent 60%)`,
+            opacity: 0.16,
+            pointerEvents: "none",
+          }}
+        />
+      )}
+      <div className="bc-stat-value" style={accent ? { color: accent } : undefined}>{value}</div>
+      <div className="bc-stat-label">{label}</div>
+    </Glass>
   );
 }
+
+export default StatTile;
