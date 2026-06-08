@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { GlassButton } from "@/components/glass";
+import { Button } from "@/components/glass";
 
 export default function DeleteScheduleButton({ id }: { id: string }) {
   const router = useRouter();
@@ -18,8 +18,8 @@ export default function DeleteScheduleButton({ id }: { id: string }) {
   }
 
   return (
-    <GlassButton type="button" variant="ghost" size="sm" onClick={del} disabled={busy}>
+    <Button type="button" size="sm" onClick={del} disabled={busy}>
       Delete
-    </GlassButton>
+    </Button>
   );
 }
