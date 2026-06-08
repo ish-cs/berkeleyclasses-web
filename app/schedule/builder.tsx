@@ -6,27 +6,11 @@ import type { Section } from "@/lib/types";
 import { sectionsConflict } from "@/lib/format";
 import type { TermGroup } from "@/lib/terms";
 import ScheduleGrid from "@/components/schedule-grid";
-import { GlassCard, GlassButton, GlassInput, GlassSelect } from "@/components/glass";
+import { Glass, Button, GlassInput, GlassSelect } from "@/components/glass";
 
 const DEFAULT_TERM_NAME = "Fall 2026";
 
-const display = (size: string, weight = 600): React.CSSProperties => ({
-  fontFamily: "var(--font-display)",
-  fontWeight: weight,
-  letterSpacing: "var(--tracking-display)",
-  fontSize: size,
-});
-const text: React.CSSProperties = { fontFamily: "var(--font-text)", color: "var(--glass-text-muted)" };
 const mono: React.CSSProperties = { fontFamily: "var(--font-mono-sf)" };
-const LABEL: React.CSSProperties = {
-  display: "block",
-  fontFamily: "var(--font-text)",
-  fontSize: "0.7rem",
-  textTransform: "uppercase",
-  letterSpacing: "0.08em",
-  color: "var(--glass-text-faint)",
-  marginBottom: "0.4rem",
-};
 
 function flattenTerms(groups: TermGroup[]): { term_id: string; name: string }[] {
   const out: { term_id: string; name: string }[] = [];
@@ -137,10 +121,23 @@ export default function ScheduleBuilder({ termGroups }: { termGroups: TermGroup[
 
   return (
     <div>
-      <GlassCard elevation={1} radius="lg" padding="1.25rem 1.25rem 1.4rem" style={{ marginBottom: "1.5rem" }}>
+      {/* ── Controls: term picker + course search ── */}
+      <Glass className="bc-wishlist" style={{ marginBottom: "16px" }}>
         <div style={{ display: "flex", flexWrap: "wrap", gap: "0.85rem", alignItems: "flex-end" }}>
           <div style={{ minWidth: "180px" }}>
-            <span style={LABEL}>Term</span>
+            <span
+              style={{
+                display: "block",
+                fontSize: "0.7rem",
+                textTransform: "uppercase",
+                letterSpacing: "0.08em",
+                color: "var(--muted)",
+                marginBottom: "0.4rem",
+                fontWeight: 500,
+              }}
+            >
+              Term
+            </span>
             <GlassSelect value={termId} onChange={(e) => setTermId(e.target.value)}>
               {termGroups.map((g) =>
                 g.kind === "single" ? (
@@ -161,7 +158,19 @@ export default function ScheduleBuilder({ termGroups }: { termGroups: TermGroup[
             </GlassSelect>
           </div>
           <div style={{ flex: 1, minWidth: "260px" }}>
-            <span style={LABEL}>Add course (e.g. COMPSCI 61A)</span>
+            <span
+              style={{
+                display: "block",
+                fontSize: "0.7rem",
+                textTransform: "uppercase",
+                letterSpacing: "0.08em",
+                color: "var(--muted)",
+                marginBottom: "0.4rem",
+                fontWeight: 500,
+              }}
+            >
+              Add course (e.g. COMPSCI 61A)
+            </span>
             <div style={{ display: "flex", gap: "0.55rem" }}>
               <GlassInput
                 type="text"
@@ -170,9 +179,9 @@ export default function ScheduleBuilder({ termGroups }: { termGroups: TermGroup[
                 onKeyDown={(e) => e.key === "Enter" && addCourse()}
                 placeholder="COMPSCI 61A"
               />
-              <GlassButton type="button" variant="primary" onClick={addCourse}>
+              <Button type="button" variant="primary" onClick={addCourse}>
                 Add
-              </GlassButton>
+              </Button>
             </div>
           </div>
         </div>
@@ -184,8 +193,9 @@ export default function ScheduleBuilder({ termGroups }: { termGroups: TermGroup[
                 fontSize: "0.625rem",
                 textTransform: "uppercase",
                 letterSpacing: "0.08em",
-                color: "var(--glass-text-faint)",
+                color: "var(--muted)",
                 margin: "0 0 0.5rem",
+                fontWeight: 500,
               }}
             >
               Wishlist ({wishlist.length})
@@ -198,17 +208,16 @@ export default function ScheduleBuilder({ termGroups }: { termGroups: TermGroup[
                     display: "inline-flex",
                     alignItems: "center",
                     gap: "0.5rem",
-                    background: "var(--glass-1)",
-                    border: "1px solid var(--glass-border)",
+                    background: "var(--glass-fill)",
+                    border: "0.5px solid var(--glass-border)",
                     padding: "0.3rem 0.8rem",
                     borderRadius: "var(--r-pill)",
-                    fontFamily: "var(--font-text)",
                     fontSize: "0.8125rem",
-                    color: "var(--glass-text)",
+                    color: "var(--ink)",
                   }}
                 >
-                  <span>{cs.course}</span>
-                  <span style={{ color: "var(--glass-text-faint)" }}>{cs.count} sec</span>
+                  <span className="bc-wishlist-code">{cs.course}</span>
+                  <span style={{ color: "var(--muted)" }}>{cs.count} sec</span>
                   <button
                     type="button"
                     onClick={() => removeCourse(cs.course)}
@@ -217,8 +226,9 @@ export default function ScheduleBuilder({ termGroups }: { termGroups: TermGroup[
                       background: "transparent",
                       border: "none",
                       cursor: "pointer",
-                      color: "var(--glass-text-faint)",
+                      color: "var(--muted)",
                       lineHeight: 1,
+                      fontSize: "1rem",
                     }}
                   >
                     ×
@@ -228,35 +238,48 @@ export default function ScheduleBuilder({ termGroups }: { termGroups: TermGroup[
             </div>
           </div>
         )}
-      </GlassCard>
+      </Glass>
 
+      {/* ── Status messages ── */}
       {error && (
-        <p style={{ color: "var(--cap-conflict-text)", marginBottom: "1rem", ...text }}>{error}</p>
+        <p style={{ color: "var(--cap-conflict-text)", marginBottom: "1rem", fontSize: "0.875rem" }}>{error}</p>
       )}
       {loading && (
-        <p style={{ color: "var(--glass-text-faint)", marginBottom: "1rem", ...text }}>Loading sections…</p>
+        <p style={{ color: "var(--muted)", marginBottom: "1rem", fontSize: "0.875rem" }}>Loading sections…</p>
       )}
 
       {!loading &&
         courseSummary
           .filter((cs) => cs.count === 0 && sectionsByCourse[cs.course] !== undefined)
           .map((cs) => (
-            <p key={cs.course} style={{ color: "var(--cap-warn-text)", margin: "0.4rem 0", ...text, fontSize: "0.875rem" }}>
+            <p key={cs.course} style={{ color: "var(--cap-warn-text)", margin: "0.4rem 0", fontSize: "0.875rem" }}>
               No sections found for <span style={mono}>{cs.course}</span> in this term — check the spelling or term.
             </p>
           ))}
 
+      {/* ── Combinations ── */}
       {wishlist.length > 0 && !loading && (
         <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-          <h2 style={{ margin: 0, ...display("1.35rem"), color: "var(--glass-text)" }}>
-            {combos.length === 0 ? "No conflict-free combinations" : `${combos.length} conflict-free option${combos.length === 1 ? "" : "s"}`}
+          <h2
+            style={{
+              margin: 0,
+              fontSize: "1.35rem",
+              fontFamily: "var(--font-display)",
+              fontWeight: 600,
+              letterSpacing: "var(--tracking-display)",
+              color: "var(--ink-strong)",
+            }}
+          >
+            {combos.length === 0
+              ? "No conflict-free combinations"
+              : `${combos.length} conflict-free option${combos.length === 1 ? "" : "s"}`}
           </h2>
-          {saveMsg && <p style={{ color: "var(--glass-text)", margin: 0, ...text, fontSize: "0.875rem" }}>{saveMsg}</p>}
+          {saveMsg && <p style={{ color: "var(--ink)", margin: 0, fontSize: "0.875rem" }}>{saveMsg}</p>}
           {combos.map((combo, i) => {
             const ccns = combo.map((s) => s.ccn).join(",");
             const icsName = `option-${i + 1}`;
             return (
-              <GlassCard key={i} elevation={1} radius="lg" padding="1.4rem">
+              <Glass key={i} style={{ padding: "1.4rem" }}>
                 <div
                   style={{
                     display: "flex",
@@ -267,40 +290,60 @@ export default function ScheduleBuilder({ termGroups }: { termGroups: TermGroup[
                     marginBottom: "1rem",
                   }}
                 >
-                  <h3 style={{ margin: 0, ...display("1.1rem"), color: "var(--glass-text)" }}>Option {i + 1}</h3>
+                  <h3
+                    style={{
+                      margin: 0,
+                      fontSize: "1.1rem",
+                      fontFamily: "var(--font-display)",
+                      fontWeight: 600,
+                      letterSpacing: "var(--tracking-display)",
+                      color: "var(--ink-strong)",
+                    }}
+                  >
+                    Option {i + 1}
+                  </h3>
                   <div style={{ display: "flex", gap: "0.5rem" }}>
                     <a
                       href={`/api/ics?ccns=${ccns}&name=${encodeURIComponent(icsName)}`}
                       style={{ textDecoration: "none" }}
                     >
-                      <GlassButton variant="glass" size="sm">
+                      <Button size="sm" variant="primary">
                         Export .ics
-                      </GlassButton>
+                      </Button>
                     </a>
-                    <GlassButton type="button" variant="primary" size="sm" onClick={() => saveSchedule(combo)} disabled={saving}>
+                    <Button type="button" size="sm" onClick={() => saveSchedule(combo)} disabled={saving}>
                       Save
-                    </GlassButton>
+                    </Button>
                   </div>
                 </div>
                 <ScheduleGrid sections={combo} />
                 <div style={{ marginTop: "1rem", overflowX: "auto" }}>
-                  <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "var(--font-text)", fontSize: "0.875rem" }}>
+                  <table
+                    style={{
+                      width: "100%",
+                      borderCollapse: "collapse",
+                      fontFamily: "var(--font-text)",
+                      fontSize: "0.875rem",
+                    }}
+                  >
                     <tbody>
                       {combo.map((s) => (
-                        <tr key={s.ccn} style={{ borderTop: "1px solid var(--glass-border)" }}>
-                          <td style={{ padding: "0.55rem 0.85rem 0.55rem 0", ...mono, color: "var(--glass-text-faint)" }}>{s.ccn}</td>
-                          <td style={{ padding: "0.55rem 0.85rem", color: "var(--glass-text)" }}>
+                        <tr key={s.ccn} style={{ borderTop: "0.5px solid var(--hairline)" }}>
+                          <td style={{ padding: "0.55rem 0.85rem 0.55rem 0", ...mono, color: "var(--muted)" }}>
+                            {s.ccn}
+                          </td>
+                          <td style={{ padding: "0.55rem 0.85rem", color: "var(--ink-strong)" }}>
                             {s.course_code} {s.section_type} {s.section_number}
                           </td>
-                          <td style={{ padding: "0.55rem 0.85rem", color: "var(--glass-text-muted)" }}>{s.meeting_days ?? "—"}</td>
-                          <td style={{ padding: "0.55rem 0.85rem", color: "var(--glass-text-muted)" }}>{s.meeting_time ?? "async"}</td>
-                          <td style={{ padding: "0.55rem 0", color: "var(--glass-text-faint)" }}>{s.instructors ?? ""}</td>
+                          <td style={{ padding: "0.55rem 0.85rem", color: "var(--ink)" }}>{s.meeting_days ?? "—"}</td>
+                          <td style={{ padding: "0.55rem 0.85rem", color: "var(--ink)" }}>{s.meeting_time ?? "async"}</td>
+                          <td style={{ padding: "0.55rem 0", color: "var(--muted)" }}>{s.instructors ?? ""}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
-              </GlassCard>
+              </Glass>
             );
           })}
         </div>

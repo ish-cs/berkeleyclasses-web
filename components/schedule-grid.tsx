@@ -10,14 +10,16 @@ const DAYS: { code: string; label: string }[] = [
 ];
 
 const PALETTE = [
-  "bg-blue-500/20 border-blue-500/40 text-blue-100",
-  "bg-emerald-500/20 border-emerald-500/40 text-emerald-100",
-  "bg-violet-500/20 border-violet-500/40 text-violet-100",
-  "bg-amber-500/20 border-amber-500/40 text-amber-100",
-  "bg-rose-500/20 border-rose-500/40 text-rose-100",
-  "bg-cyan-500/20 border-cyan-500/40 text-cyan-100",
-  "bg-pink-500/20 border-pink-500/40 text-pink-100",
+  "primary",
+  "gold",
+  "primary",
+  "primary",
+  "gold",
+  "primary",
+  "primary",
 ];
+
+const PIXEL_PER_MIN = 0.9;
 
 function fmtClock(min: number): string {
   const h24 = Math.floor(min / 60);
@@ -43,11 +45,7 @@ export default function ScheduleGrid({
     .filter(Boolean) as { s: Section; days: string[]; time: { start: number; end: number } }[];
 
   if (placed.length === 0) {
-    return (
-      <div className="rounded-lg border border-dashed border-zinc-800 px-6 py-10 text-center text-sm text-zinc-500">
-        No timed meetings — all sections are async / TBA.
-      </div>
-    );
+    return <div className="bc-schedule-empty">No timed meetings — all sections are async / TBA.</div>;
   }
 
   const minStart = Math.min(...placed.map((p) => p.time.start));
@@ -66,64 +64,52 @@ export default function ScheduleGrid({
   }
 
   return (
-    <div className="rounded-lg border border-zinc-900 overflow-x-auto">
-      <div className="min-w-[560px]">
-      <div className="grid grid-cols-[48px_repeat(5,1fr)] text-xs">
+    <div className="bc-grid-shell">
+      <div className="bc-grid-head">
         <div />
         {DAYS.map((d) => (
-          <div key={d.code} className="px-2 py-1.5 text-zinc-400 border-l border-zinc-900 font-medium">
-            {d.label}
-          </div>
+          <div key={d.code}>{d.label}</div>
         ))}
       </div>
-      <div className="grid grid-cols-[48px_repeat(5,1fr)] relative" style={{ height: `${totalMin * 0.9}px` }}>
-        <div className="border-r border-zinc-900">
+      <div className="bc-grid-body" style={{ height: `${totalMin * PIXEL_PER_MIN}px` }}>
+        <div className="bc-grid-hours">
           {Array.from({ length: endHour - startHour }).map((_, i) => {
             const h = startHour + i;
             const h12 = ((h + 11) % 12) + 1;
             const ampm = h >= 12 ? "p" : "a";
             return (
-              <div
-                key={h}
-                className="text-[10px] text-zinc-600 pr-1 text-right border-t border-zinc-900/70"
-                style={{ height: `${60 * 0.9}px` }}
-              >
+              <div key={h} className="bc-grid-hour" style={{ height: `${60 * PIXEL_PER_MIN}px` }}>
                 {h12}{ampm}
               </div>
             );
           })}
         </div>
         {DAYS.map((d) => (
-          <div key={d.code} className="relative border-l border-zinc-900">
+          <div key={d.code} className="bc-grid-day">
             {Array.from({ length: endHour - startHour }).map((_, i) => (
-              <div key={i} className="border-t border-zinc-900/70" style={{ height: `${60 * 0.9}px` }} />
+              <div key={i} className="bc-grid-day-row" style={{ height: `${60 * PIXEL_PER_MIN}px` }} />
             ))}
             {placed
               .filter((p) => p.days.includes(d.code))
-              .map((p) => {
-                const top = (p.time.start - startHour * 60) * 0.9;
-                const height = Math.max(20, (p.time.end - p.time.start) * 0.9);
-                const color = colorMap.get(keyFor(p.s)) ?? PALETTE[0];
+              .map((p, i) => {
+                const top = (p.time.start - startHour * 60) * PIXEL_PER_MIN;
+                const height = Math.max(20, (p.time.end - p.time.start) * PIXEL_PER_MIN);
+                const isGold = colorMap.get(keyFor(p.s)) === "gold";
                 return (
                   <div
-                    key={`${p.s.ccn}-${d.code}`}
-                    className={`absolute left-0.5 right-0.5 rounded border px-1.5 py-1 text-[10px] leading-tight overflow-hidden ${color}`}
+                    key={`${p.s.ccn}-${d.code}-${i}`}
+                    className={["bc-grid-event", isGold ? "bc-grid-event--gold" : null].filter(Boolean).join(" ")}
                     style={{ top: `${top}px`, height: `${height}px` }}
                     title={`${p.s.course_code} ${p.s.section_type} ${p.s.section_number} — ${p.s.title ?? ""}`}
                   >
-                    <div className="font-semibold truncate">
-                      {p.s.course_code} {p.s.section_type}
-                    </div>
-                    <div className="opacity-80 truncate">
-                      {fmtClock(p.time.start)}–{fmtClock(p.time.end)}
-                    </div>
-                    {p.s.location && <div className="opacity-70 truncate">{p.s.location}</div>}
+                    <div className="bc-grid-event-title">{p.s.course_code} {p.s.section_type}</div>
+                    <div className="bc-grid-event-time">{fmtClock(p.time.start)}–{fmtClock(p.time.end)}</div>
+                    {p.s.location && <div className="bc-grid-event-loc">{p.s.location}</div>}
                   </div>
                 );
               })}
           </div>
         ))}
-      </div>
       </div>
     </div>
   );
