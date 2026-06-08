@@ -2,7 +2,7 @@
 // next/headers via the Supabase server client) and MUST be imported directly
 // from "@/components/glass/GlassNav" so it never gets pulled into a client
 // component's module graph.
-export { default as MeshBackground } from "./MeshBackground";
+export { MeshBackground } from "./MeshBackground";
 export { default as GlassWordmark } from "./GlassWordmark";
 export { default as GlassCard } from "./GlassCard";
 export { default as GlassButton } from "./GlassButton";
