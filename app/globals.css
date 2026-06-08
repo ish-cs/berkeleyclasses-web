@@ -269,3 +269,9 @@ html[data-reduced-motion="true"] .mesh-wash { animation: none; }
 .bc-star-glyph { position: relative; z-index: 1; }
 .bc-star:focus-visible { outline: 2px solid var(--berkeley-blue); outline-offset: 2px; }
 .bc-star--on { background: var(--tint-gold); color: var(--gold-text); }
+
+.bc-wordmark {
+  font-weight: 700; letter-spacing: -0.02em; font-size: 15px;
+  color: var(--berkeley-blue); text-decoration: none;
+}
+.bc-wordmark-dot { color: var(--california-gold); }
