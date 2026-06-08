@@ -23,6 +23,18 @@ export default async function ClassPage({
   const supabase = await createClient();
   const { data: section } = await supabase.from("sections").select("*").eq("ccn", ccnNum).maybeSingle();
   if (!section) notFound();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  let isSaved = false;
+  if (user) {
+    const { data: sav } = await supabase
+      .from("saved_sections")
+      .select("ccn")
+      .eq("user_id", user.id)
+      .eq("ccn", String(ccnNum))
+      .maybeSingle();
+    isSaved = !!sav;
+  }
   const s = section as Section;
 
   const [{ data: siblings }, { data: metaRow }, { data: snapshotRows }] = await Promise.all([
@@ -110,7 +122,7 @@ export default async function ClassPage({
               <SeatPill open={s.open_seats ?? 0} waitlist={s.waitlisted ?? 0} />
             </div>
           </div>
-          <SaveSectionButton ccn={ccnNum} initial={false} />
+          <SaveSectionButton ccn={String(ccnNum)} initial={isSaved} />
         </div>
 
         {/* Requirements + prereq pills */}
