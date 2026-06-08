@@ -375,13 +375,38 @@ html[data-reduced-motion="true"] .mesh-wash { animation: none; }
 .bc-filters-reset { background: transparent; border: 0; color: var(--muted); font-size: 11px; cursor: pointer; padding: 0; font-family: inherit; }
 .bc-filters-reset:hover { color: var(--ink); }
 
+/* ── Phase 5.2: Filter header + body ──────────────────────────────────── */
+.bc-filters-header { display: flex; align-items: center; justify-content: space-between; padding: 0 0 14px; border-bottom: 0.5px solid var(--hairline); margin-bottom: 14px; }
+.bc-filters-toggle { background: transparent; border: 0; color: var(--ink-strong); font-weight: 600; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 0; font-family: inherit; }
+.bc-filters-count {
+  background: var(--tint-primary, var(--glass-fill-strong)); color: var(--ink);
+  border-radius: 999px; padding: 1px 7px; font-size: 10px; font-weight: 600;
+  font-family: var(--font-mono, monospace);
+}
+.bc-filters-body { display: flex; flex-direction: column; gap: 18px; }
+
 .bc-sort-row { display: flex; align-items: center; gap: 8px; }
 .bc-sr-label { font-size: 12px; color: var(--muted); }
 
-/* Filter body: desktop always shown; mobile toggled */
-.bc-filter-body { display: none; flex-direction: column; }
-.bc-filter-body--open { display: flex; }
-@media (min-width: 1024px) { .bc-filter-body { display: flex; } }
+/* ── Phase 5.2: Mobile filter bottom-sheet ────────────────────────────── */
+@media (max-width: 640px) {
+  .bc-filters {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 60;
+    border-radius: 22px 22px 0 0;
+    max-height: 80vh; overflow-y: auto;
+    transition: transform var(--motion-enter), opacity var(--motion-enter);
+  }
+  .bc-filters--closed { transform: translateY(calc(100% - 56px)); }
+  .bc-filters--open { transform: translateY(0); }
+  .bc-filters-body { padding-bottom: 24px; }
+}
+@media (min-width: 641px) {
+  .bc-filters-body { display: flex !important; }
+}
+/* Desktop sticky sidebar */
+@media (min-width: 1024px) {
+  .bc-grid3 > .bc-filters { position: sticky; top: 22px; align-self: start; max-height: calc(100vh - 44px); overflow-y: auto; }
+}
 
 .bc-multi { position: relative; }
 .bc-multi-trigger {
@@ -608,3 +633,18 @@ html[data-reduced-motion="true"] .mesh-wash { animation: none; }
   margin-bottom: 18px;
 }
 [data-theme="dark"] .bc-auth-error { background: rgba(220, 38, 38, 0.18); color: #fecaca; }
+
+/* ── Phase 5.1: Staggered entry animations ──────────────────────────────── */
+@keyframes bc-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.bc-glass { animation: bc-enter var(--motion-enter) both; }
+.bc-glass:nth-child(2) { animation-delay: 40ms; }
+.bc-glass:nth-child(3) { animation-delay: 80ms; }
+.bc-glass:nth-child(4) { animation-delay: 120ms; }
+.bc-glass:nth-child(5) { animation-delay: 160ms; }
+.bc-glass:nth-child(6) { animation-delay: 200ms; }
+
+html[data-reduced-motion="true"] .bc-glass { animation: none; }
