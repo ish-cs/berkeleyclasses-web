@@ -2,14 +2,20 @@
 // next/headers via the Supabase server client) and MUST be imported directly
 // from "@/components/glass/GlassNav" so it never gets pulled into a client
 // component's module graph.
+export { Glass } from "./Glass";
+export { Button } from "./Button";
+export { Chip } from "./Chip";
+export { SeatPill } from "./SeatPill";
+export { StarButton } from "./StarButton";
+export { Wordmark } from "./Wordmark";
+export { ThemeToggle } from "./ThemeToggle";
 export { MeshBackground } from "./MeshBackground";
-export { default as GlassWordmark } from "./GlassWordmark";
-export { default as GlassCard } from "./GlassCard";
-export { default as GlassButton } from "./GlassButton";
-export { default as GlassPill } from "./GlassPill";
-export { default as GlassInput } from "./GlassInput";
-export { default as GlassSelect } from "./GlassSelect";
-export { default as GlassIsland } from "./GlassIsland";
+export { GlassCard } from "./GlassCard";
+export { GlassButton } from "./GlassButton";
+export { GlassPill } from "./GlassPill";
+export { GlassInput } from "./GlassInput";
+export { GlassSelect } from "./GlassSelect";
+export { GlassIsland } from "./GlassIsland";
 export { default as SegmentedControl } from "./SegmentedControl";
-export { default as SeatCapsule } from "./SeatCapsule";
-export { default as StatTile } from "./StatTile";
+export { StatTile } from "./StatTile";
+export { SeatCapsule } from "./SeatCapsule";

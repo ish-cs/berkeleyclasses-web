@@ -5,7 +5,7 @@ import {  GlassCard, GlassButton, SeatCapsule } from "@/components/glass";
 import GlassNav from "@/components/glass/GlassNav";
 import GradeHistogram from "@/components/grade-histogram";
 import WaitlistTrend from "@/components/waitlist-trend";
-import StarButton from "@/components/star-button";
+import { StarButton } from "@/components/glass";
 import { extractPrereqs } from "@/lib/prereqs";
 import { subjectAccent } from "@/lib/accent";
 import type { CourseMeta, Section, SectionSnapshot } from "@/lib/types";
@@ -128,7 +128,7 @@ export default async function ClassPage({
               <p style={{ margin: "0.4rem 0 0", ...text, fontSize: "1.15rem", color: "var(--glass-text)" }}>{s.title}</p>
             </div>
             <div style={{ display: "flex", alignItems: "flex-start", gap: "0.85rem" }}>
-              <StarButton ccn={s.ccn} variant="icon" />
+              <StarButton />
               <SeatCapsule seats={s.open_seats ?? 0} size="lg" />
             </div>
           </div>
