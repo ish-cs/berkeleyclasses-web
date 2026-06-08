@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { Glass, Button, SeatPill, StarButton } from "@/components/glass";
+import { Glass, Button, SeatPill } from "@/components/glass";
+import { SaveSectionButton } from "@/components/save-section-button";
 import GlassNav from "@/components/glass/GlassNav";
 import type { Section } from "@/lib/types";
 import FilterSidebar from "./filter-sidebar";
@@ -142,6 +143,18 @@ export default async function FindPage({
     });
   }
 
+  const { data: { user } } = await supabase.auth.getUser();
+  const savedCcns = new Set<string>();
+  if (user && rows.length > 0) {
+    const ccnList = rows.map((r) => String(r.ccn));
+    const { data: savedRows } = await supabase
+      .from("saved_sections")
+      .select("ccn")
+      .eq("user_id", user.id)
+      .in("ccn", ccnList);
+    for (const row of savedRows ?? []) savedCcns.add(String(row.ccn));
+  }
+
   return (
     <main className="bc-page">
       <GlassNav active="/find" />
@@ -157,7 +170,7 @@ export default async function FindPage({
         </form>
       </Glass>
 
-      <div className="bc-grid3">
+      <div className="bc-grid2">
         <FilterSidebar
           termGroups={groupTermsByYear(allTerms)}
           subjects={subjects ?? []}
@@ -179,20 +192,15 @@ export default async function FindPage({
           {rows.length === 0 ? (
             <p className="bc-muted">No sections match these filters. Remove a filter or pick another term.</p>
           ) : (
-            rows.map((s) => <SectionRow key={s.ccn} s={s} />)
+            rows.map((s) => <SectionRow key={s.ccn} s={s} saved={savedCcns.has(String(s.ccn))} />)
           )}
-        </Glass>
-
-        <Glass as="aside" className="bc-panel">
-          <h4 className="bc-h4">About</h4>
-          <p className="bc-muted">Pick a section to see grade history, prereqs, watch options, and instructor pages.</p>
         </Glass>
       </div>
     </main>
   );
 }
 
-function SectionRow({ s }: { s: Section }) {
+function SectionRow({ s, saved }: { s: Section; saved: boolean }) {
   const courseLine = [s.course_code, s.section_type, s.section_number].filter(Boolean).join(" ");
   const meta = [
     s.instructors ?? "Staff",
@@ -209,7 +217,7 @@ function SectionRow({ s }: { s: Section }) {
         <div className="bc-row-meta">{meta}</div>
       </Link>
       <SeatPill open={s.open_seats ?? 0} />
-      <StarButton initial={false} label={`Save ${courseLine}`} />
+      <SaveSectionButton ccn={String(s.ccn)} initial={saved} />
     </article>
   );
 }

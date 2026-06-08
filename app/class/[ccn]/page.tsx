@@ -5,7 +5,7 @@ import { Glass, Button, SeatPill } from "@/components/glass";
 import GlassNav from "@/components/glass/GlassNav";
 import GradeHistogram from "@/components/grade-histogram";
 import WaitlistTrend from "@/components/waitlist-trend";
-import { SaveSectionButton } from "./save-button";
+import { SaveSectionButton } from "@/components/save-section-button";
 import { extractPrereqs } from "@/lib/prereqs";
 import type { CourseMeta, Section, SectionSnapshot } from "@/lib/types";
 

@@ -347,6 +347,9 @@ html[data-reduced-motion="true"] .mesh-wash { animation: none; }
 .bc-grid3 { display: grid; grid-template-columns: 218px 1fr 256px; gap: 16px; }
 @media (max-width: 1023px) { .bc-grid3 { grid-template-columns: 1fr; } }
 
+.bc-grid2 { display: grid; grid-template-columns: 218px 1fr; gap: 16px; }
+@media (max-width: 1023px) { .bc-grid2 { grid-template-columns: 1fr; } }
+
 .bc-results { padding: 22px 24px; }
 .bc-results-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 14px; flex-wrap: wrap; gap: 12px; }
 .bc-results-head h2 { font-size: 14px; font-weight: 600; color: var(--ink-strong); margin: 0; }
@@ -400,7 +403,8 @@ html[data-reduced-motion="true"] .mesh-wash { animation: none; }
 }
 /* Desktop sticky sidebar */
 @media (min-width: 1024px) {
-  .bc-grid3 > .bc-filters { position: sticky; top: 22px; align-self: start; max-height: calc(100vh - 44px); overflow-y: auto; }
+  .bc-grid3 > .bc-filters,
+  .bc-grid2 > .bc-filters { position: sticky; top: 22px; align-self: start; max-height: calc(100vh - 44px); overflow-y: auto; }
 }
 
 .bc-multi { position: relative; }

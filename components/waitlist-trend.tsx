@@ -7,21 +7,24 @@ export default function WaitlistTrend({
   snapshots: SectionSnapshot[];
   current: { open_seats: number; waitlisted: number; capacity: number };
 }) {
-  if (snapshots.length < 2) {
+  const ONE_DAY_SEC = 86_400;
+  const sorted = [...snapshots].sort((a, b) => a.taken_at - b.taken_at);
+  const minT = sorted.length > 0 ? sorted[0].taken_at : 0;
+  const maxT = sorted.length > 0 ? sorted[sorted.length - 1].taken_at : 0;
+  const spanSec = maxT - minT;
+
+  if (snapshots.length < 2 || spanSec < ONE_DAY_SEC) {
     return (
       <>
         <h3>Seat history</h3>
         <div className="bc-trend-empty">
-          Not enough snapshots yet — check back in a day or two.
+          Collecting data — check back in a day or two for a meaningful trend.
         </div>
       </>
     );
   }
 
-  const sorted = [...snapshots].sort((a, b) => a.taken_at - b.taken_at);
-  const minT = sorted[0].taken_at;
-  const maxT = sorted[sorted.length - 1].taken_at;
-  const spanT = Math.max(maxT - minT, 1);
+  const spanT = Math.max(spanSec, 1);
   const allYs = sorted.flatMap((s) => [s.open_seats, s.waitlisted]);
   const maxY = Math.max(...allYs, current.capacity, 1);
 
@@ -45,25 +48,26 @@ export default function WaitlistTrend({
     .map((s, i) => `${i === 0 ? "M" : "L"}${xOf(s.taken_at).toFixed(1)},${yOf(s.waitlisted).toFixed(1)}`)
     .join(" ");
 
-  // 24h + 7d deltas on open_seats
+  // 24h + 7d deltas on open_seats (taken_at is unix seconds)
   const now = sorted[sorted.length - 1];
-  const oneDayMs = 86_400_000;
-  const find = (deltaMs: number) => {
-    const target = now.taken_at - deltaMs;
+  const find = (deltaSec: number) => {
+    const target = now.taken_at - deltaSec;
     let best = sorted[0];
     for (const s of sorted) if (Math.abs(s.taken_at - target) < Math.abs(best.taken_at - target)) best = s;
     return best;
   };
-  const d1 = now.open_seats - find(oneDayMs).open_seats;
-  const d7 = now.open_seats - find(7 * oneDayMs).open_seats;
+  const has1d = spanSec >= ONE_DAY_SEC;
+  const has7d = spanSec >= 7 * ONE_DAY_SEC;
+  const d1 = has1d ? now.open_seats - find(ONE_DAY_SEC).open_seats : null;
+  const d7 = has7d ? now.open_seats - find(7 * ONE_DAY_SEC).open_seats : null;
 
   return (
     <>
       <h3 style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
         <span>Seat history</span>
         <span style={{ display: "flex", gap: 16, fontSize: 12, fontWeight: 400 }}>
-          <Delta label="24h" v={d1} />
-          <Delta label="7d" v={d7} />
+          {d1 != null && <Delta label="24h" v={d1} />}
+          {d7 != null && <Delta label="7d" v={d7} />}
         </span>
       </h3>
       <div className="bc-trend">
@@ -89,7 +93,7 @@ export default function WaitlistTrend({
 
 function Delta({ label, v }: { label: string; v: number }) {
   const sign = v > 0 ? "+" : "";
-  const color = v > 0 ? "var(--cap-open-text)" : v < 0 ? "#f87171" : "var(--muted)";
+  const color = v > 0 ? "var(--berkeley-blue)" : v < 0 ? "#dc2626" : "var(--muted)";
   return (
     <span>
       <span style={{ color: "var(--muted)" }}>{label} </span>

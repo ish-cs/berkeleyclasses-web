@@ -47,11 +47,9 @@ export default function FilterSidebar({
   const router = useRouter();
   const sp = useSearchParams();
   const [isPending, startTransition] = useTransition();
-  const [qLocal, setQLocal] = useState(current.q);
   const [instructorLocal, setInstructorLocal] = useState(current.instructor);
   const [open, setOpen] = useState(false);
 
-  useEffect(() => setQLocal(current.q), [current.q]);
   useEffect(() => setInstructorLocal(current.instructor), [current.instructor]);
 
   const pushParam = useCallback(
@@ -64,17 +62,6 @@ export default function FilterSidebar({
     },
     [router, sp],
   );
-
-  useEffect(() => {
-    const t = setTimeout(() => {
-      if (qLocal === current.q) return;
-      pushParam((p) => {
-        if (qLocal) p.set("q", qLocal);
-        else p.delete("q");
-      });
-    }, 250);
-    return () => clearTimeout(t);
-  }, [qLocal, current.q, pushParam]);
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -107,7 +94,6 @@ export default function FilterSidebar({
   }
 
   function resetAll() {
-    setQLocal("");
     setInstructorLocal("");
     startTransition(() => router.replace("/find", { scroll: false }));
   }
@@ -137,17 +123,6 @@ export default function FilterSidebar({
       </div>
 
       <div className="bc-filters-body">
-        {/* Search */}
-        <div className="bc-filters-group">
-          <h4 className="bc-h4">Search</h4>
-          <GlassInput
-            type="text"
-            placeholder="Course, title, description"
-            value={qLocal}
-            onChange={(e) => setQLocal(e.target.value)}
-          />
-        </div>
-
         {/* Term */}
         <div className="bc-filters-group">
           <h4 className="bc-h4">Term</h4>
