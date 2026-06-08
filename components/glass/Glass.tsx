@@ -8,7 +8,7 @@ type GlassProps<T extends ElementType = "div"> = {
   style?: CSSProperties;
 } & Omit<HTMLAttributes<HTMLElement>, "className" | "style">;
 
-export const Glass = forwardRef<HTMLElement, GlassProps>(function Glass(
+export const Glass = forwardRef<HTMLElement, GlassProps<ElementType>>(function Glass(
   { as, spec = true, className, children, ...rest }, ref
 ) {
   const Tag = (as ?? "div") as ElementType;
