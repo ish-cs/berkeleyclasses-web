@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { GlassCard, GlassButton, GlassInput } from "@/components/glass";
+import { Glass, Button } from "@/components/glass";
 
 export default function WatchForm({
   initialCcn,
@@ -51,12 +51,12 @@ export default function WatchForm({
   }
 
   return (
-    <GlassCard elevation={1} radius="lg" padding="1.4rem">
-      <p style={{ margin: "0 0 0.85rem", fontFamily: "var(--font-text)", fontSize: "0.875rem", color: "var(--glass-text-muted)" }}>
-        Notifications go to <span style={{ color: "var(--glass-text)" }}>{userEmail || "your account email"}</span>.
+    <Glass style={{ padding: "20px 24px" }}>
+      <p style={{ margin: "0 0 12px", fontSize: 13, color: "var(--muted)" }}>
+        Notifications go to <strong style={{ color: "var(--ink-strong)" }}>{userEmail || "your account email"}</strong>.
       </p>
-      <div style={{ display: "flex", gap: "0.55rem" }}>
-        <GlassInput
+      <div className="bc-watch-form-row">
+        <input
           type="text"
           inputMode="numeric"
           pattern="[0-9]*"
@@ -64,16 +64,17 @@ export default function WatchForm({
           onChange={(e) => setCcn(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && subscribe()}
           placeholder="CCN to watch (e.g. 29147)"
+          className="bc-input"
         />
-        <GlassButton variant="primary" size="md" disabled={loading} onClick={subscribe}>
+        <Button variant="primary" disabled={loading} onClick={subscribe}>
           {loading ? "Adding…" : "Watch"}
-        </GlassButton>
+        </Button>
       </div>
       {error && (
-        <p style={{ margin: "0.85rem 0 0", color: "var(--cap-conflict-text)", fontSize: "0.875rem", fontFamily: "var(--font-text)" }}>
+        <p style={{ margin: "12px 0 0", color: "var(--cap-conflict-text)", fontSize: 13 }}>
           {error}
         </p>
       )}
-    </GlassCard>
+    </Glass>
   );
 }

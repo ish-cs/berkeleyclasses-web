@@ -1,23 +1,13 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import {  GlassCard } from "@/components/glass";
+import { Glass, SeatPill } from "@/components/glass";
 import GlassNav from "@/components/glass/GlassNav";
 import WatchForm from "./watch-form";
 import UnsubscribeButton from "./unsubscribe-button";
 import type { Section } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
-
-const WRAP: React.CSSProperties = { maxWidth: "780px", margin: "0 auto", padding: "1.75rem 1.5rem 4rem" };
-const display = (size: string, weight = 600): React.CSSProperties => ({
-  fontFamily: "var(--font-display)",
-  fontWeight: weight,
-  letterSpacing: "var(--tracking-display)",
-  fontSize: size,
-});
-const text: React.CSSProperties = { fontFamily: "var(--font-text)", color: "var(--glass-text-muted)" };
-const mono: React.CSSProperties = { fontFamily: "var(--font-mono-sf)" };
 
 export default async function WatchPage({
   searchParams,
@@ -49,80 +39,61 @@ export default async function WatchPage({
   const preselectCcn = ccn ? parseInt(ccn, 10) : null;
 
   return (
-    <>
-      <GlassNav />
-      <section style={WRAP}>
-        <h1 style={{ margin: 0, ...display("2rem"), color: "var(--glass-text)" }}>Waitlist watcher</h1>
-        <p style={{ margin: "0.4rem 0 2rem", ...text }}>
+    <main className="bc-page">
+      <GlassNav active="/watch" />
+
+      <Glass className="bc-hero">
+        <div className="bc-eyebrow">Waitlist · Notifications</div>
+        <h1 className="bc-h1">Watch <span className="bc-h1-accent">waitlists</span>.</h1>
+        <p style={{ margin: "8px 0 0", fontSize: 14, color: "var(--muted)" }}>
           Get an email when a section opens up or the waitlist shrinks. Powered by hourly snapshots.
         </p>
+      </Glass>
 
+      <div style={{ maxWidth: 780, margin: "0 auto", padding: "0 24px 60px" }}>
         <WatchForm initialCcn={preselectCcn ?? undefined} userEmail={user.email ?? ""} />
 
-        <h2 style={{ margin: "2.5rem 0 1rem", ...display("1.25rem"), color: "var(--glass-text)" }}>
+        <h2 style={{ margin: "32px 0 12px", fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 18, color: "var(--ink-strong)", letterSpacing: "var(--tracking-display)" }}>
           Your watched sections
         </h2>
 
         {subs.length === 0 ? (
-          <p style={{ ...text }}>No active watches yet. Add a CCN above.</p>
+          <p style={{ color: "var(--muted)", fontSize: 13 }}>No active watches yet. Add a CCN above.</p>
         ) : (
-          <GlassCard elevation={1} radius="lg" padding={0}>
+          <Glass className="bc-watch-list">
             {subs.map((sub, i) => {
               const s = sectionsByCcn.get(sub.ccn);
               return (
                 <div
                   key={sub.id}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: "1rem",
-                    padding: "0.85rem 1rem",
-                    borderTop: i === 0 ? "none" : "1px solid var(--glass-border)",
-                  }}
+                  className="bc-row"
+                  style={i > 0 ? { borderTop: "0.5px solid var(--hairline)" } : undefined}
                 >
-                  <div style={{ minWidth: 0 }}>
-                    <Link
-                      href={`/class/${sub.ccn}`}
-                      style={{ ...mono, fontSize: "0.875rem", color: "var(--glass-text)", textDecoration: "none" }}
-                    >
-                      {sub.ccn}
-                    </Link>{" "}
-                    <span style={{ color: "var(--glass-text)", fontFamily: "var(--font-text)" }}>
-                      {s ? `${s.course_code} ${s.section_type} ${s.section_number}` : "(not synced)"}
-                    </span>
-                    <p
-                      style={{
-                        margin: "0.25rem 0 0",
-                        fontSize: "0.75rem",
-                        color: "var(--glass-text-faint)",
-                        whiteSpace: "nowrap",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                      }}
-                    >
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <Link
+                        href={`/class/${sub.ccn}`}
+                        style={{ fontFamily: "var(--font-mono-sf)", fontSize: 13, color: "var(--ink-strong)", textDecoration: "none", fontWeight: 600 }}
+                      >
+                        {sub.ccn}
+                      </Link>
+                      <span style={{ color: "var(--ink-strong)", fontSize: 13 }}>
+                        {s ? `${s.course_code} ${s.section_type} ${s.section_number}` : "(not synced)"}
+                      </span>
+                    </div>
+                    <div className="bc-row-meta">
                       {s?.title ?? ""}
-                      {s ? ` · ${s.meeting_days ?? ""} ${s.meeting_time ?? ""}` : ""}
-                    </p>
+                      {s ? ` · ${s.meeting_days ?? ""} ${s.meeting_time ?? ""}`.trim() : ""}
+                    </div>
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.85rem" }}>
-                    <span
-                      style={{
-                        ...mono,
-                        fontSize: "0.875rem",
-                        color: s && s.open_seats > 0 ? "var(--cap-open-text)" : "var(--glass-text-faint)",
-                      }}
-                    >
-                      {s?.open_seats ?? "—"} open
-                    </span>
-                    <UnsubscribeButton id={sub.id} />
-                  </div>
+                  <SeatPill open={s?.open_seats ?? 0} />
+                  <UnsubscribeButton id={sub.id} />
                 </div>
               );
             })}
-          </GlassCard>
+          </Glass>
         )}
-      </section>
-    </>
+      </div>
+    </main>
   );
 }
