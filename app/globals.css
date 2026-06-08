@@ -25,14 +25,16 @@
 
   --glass-fill: rgba(255, 255, 255, 0.16);
   --glass-fill-strong: rgba(255, 255, 255, 0.24);
-  --glass-border: rgba(255, 255, 255, 0.50);
+  --glass-border: rgba(0, 50, 98, 0.18);
+  --glass-border-strong: rgba(0, 50, 98, 0.30);
+  --glass-hover: rgba(255, 255, 255, 0.42);
   --glass-highlight: rgba(255, 255, 255, 1);
   --glass-spec: linear-gradient(180deg, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0) 38%);
 
   --ink: #0a0a0a;
   --ink-strong: var(--berkeley-blue-deep);
   --muted: #6e7282;
-  --hairline: rgba(0, 0, 0, 0.05);
+  --hairline: rgba(0, 50, 98, 0.12);
 
   --tint-primary: rgba(0, 50, 98, 0.48);
   --tint-primary-strong: rgba(0, 50, 98, 0.62);
@@ -67,7 +69,9 @@
 
   --glass-fill: rgba(255, 255, 255, 0.03);
   --glass-fill-strong: rgba(255, 255, 255, 0.06);
-  --glass-border: rgba(255, 255, 255, 0.12);
+  --glass-border: rgba(255, 255, 255, 0.14);
+  --glass-border-strong: rgba(255, 255, 255, 0.28);
+  --glass-hover: rgba(255, 255, 255, 0.06);
   --glass-highlight: rgba(255, 255, 255, 0.22);
   --glass-spec: linear-gradient(180deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0) 38%);
 
