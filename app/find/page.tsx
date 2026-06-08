@@ -1,9 +1,8 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import {  GlassCard, SeatCapsule } from "@/components/glass";
+import { Glass, Button, SeatPill, StarButton } from "@/components/glass";
 import GlassNav from "@/components/glass/GlassNav";
 import type { Section } from "@/lib/types";
-import { subjectAccent } from "@/lib/accent";
 import FilterSidebar from "./filter-sidebar";
 import SortSelect from "./sort-select";
 import { groupTermsByYear, resolveTermIds } from "@/lib/terms";
@@ -28,15 +27,6 @@ type SearchParams = {
 
 const DEFAULT_TERM = "Fall 2026";
 const RESULT_LIMIT = 300;
-
-const WRAP: React.CSSProperties = { maxWidth: "1240px", margin: "0 auto", padding: "0 1.5rem" };
-const display = (size: string, weight = 600): React.CSSProperties => ({
-  fontFamily: "var(--font-display)",
-  fontWeight: weight,
-  letterSpacing: "var(--tracking-display)",
-  fontSize: size,
-});
-const mono: React.CSSProperties = { fontFamily: "var(--font-mono-sf)" };
 
 export default async function FindPage({
   searchParams,
@@ -153,187 +143,73 @@ export default async function FindPage({
   }
 
   return (
-    <>
-      <GlassNav />
-      <main style={{ ...WRAP, padding: "2rem 1.5rem 4rem" }}>
-        <div
-          style={{
-            display: "grid",
-            gap: "1.5rem",
-            gridTemplateColumns: "minmax(0, 280px) minmax(0, 1fr)",
-          }}
-          className="bc-find-layout"
-        >
-          <aside style={{ position: "sticky", top: "5.25rem", alignSelf: "flex-start" }}>
-            <FilterSidebar
-              termGroups={groupTermsByYear(allTerms)}
-              subjects={subjects ?? []}
-              reqOptions={reqOptions}
-              current={{
-                q,
-                term: termName,
-                subject,
-                openOnly,
-                mode,
-                level,
-                types,
-                days,
-                units,
-                instructor,
-                reqs,
-                sort,
-              }}
-            />
-          </aside>
+    <main className="bc-page">
+      <GlassNav active="/find" />
 
-          <section>
-            <div
-              style={{
-                display: "flex",
-                flexWrap: "wrap",
-                alignItems: "flex-end",
-                justifyContent: "space-between",
-                gap: "0.75rem",
-                marginBottom: "1.25rem",
-              }}
-            >
-              <div>
-                <h1 style={{ margin: 0, ...display("1.75rem"), color: "var(--glass-text)" }}>Search</h1>
-                <p
-                  style={{
-                    margin: "0.35rem 0 0",
-                    fontFamily: "var(--font-text)",
-                    fontSize: "0.875rem",
-                    color: "var(--glass-text-faint)",
-                  }}
-                >
-                  {rows.length === RESULT_LIMIT
-                    ? `Showing first ${RESULT_LIMIT} results — refine to narrow down`
-                    : `${rows.length} result${rows.length === 1 ? "" : "s"}`}
-                  {" · "}term {termName}
-                </p>
-              </div>
-              <SortSelect current={sort} />
-            </div>
+      <Glass className="bc-hero">
+        <div className="bc-eyebrow">UC Berkeley · {termName}</div>
+        <h1 className="bc-h1">Find <span className="bc-h1-accent">your</span> classes.</h1>
+        <form className="bc-hero-form" action="/find" method="get">
+          <input name="q" className="bc-input" placeholder="course, instructor, CCN, keyword…" defaultValue={q} />
+          <input type="hidden" name="term" value={termName} />
+          {openOnly && <input type="hidden" name="open" value="1" />}
+          <Button type="submit" variant="primary">Search</Button>
+        </form>
+      </Glass>
 
-            {error && (
-              <div style={{ marginBottom: "1rem" }}>
-                <GlassCard elevation={1} radius="sm" padding="0.75rem 1rem" specular={false}>
-                  <p style={{ margin: 0, color: "var(--cap-conflict-text)" }}>{error.message}</p>
-                </GlassCard>
-              </div>
-            )}
+      <div className="bc-grid3">
+        <FilterSidebar
+          termGroups={groupTermsByYear(allTerms)}
+          subjects={subjects ?? []}
+          reqOptions={reqOptions}
+          current={{ q, term: termName, subject, openOnly, mode, level, types, days, units, instructor, reqs, sort }}
+        />
 
-            {rows.length === 0 ? (
-              <GlassCard elevation={1} radius="lg" padding="3rem 1.5rem" specular={false}>
-                <p style={{ margin: 0, color: "var(--glass-text)", textAlign: "center" }}>
-                  No sections match these filters.
-                </p>
-                <p
-                  style={{
-                    margin: "0.5rem 0 0",
-                    fontSize: "0.875rem",
-                    color: "var(--glass-text-faint)",
-                    textAlign: "center",
-                  }}
-                >
-                  Try removing a filter or pick another term.
-                </p>
-              </GlassCard>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: "0.85rem" }}>
-                {rows.map((s) => (
-                  <SectionCard key={s.ccn} s={s} />
-                ))}
-              </div>
-            )}
-          </section>
-        </div>
-      </main>
-      <style>{`
-        @media (max-width: 1024px) {
-          .bc-find-layout { grid-template-columns: 1fr !important; }
-          .bc-find-layout > aside { position: static !important; }
-        }
-      `}</style>
-    </>
+        <Glass as="section" className="bc-results">
+          <header className="bc-results-head">
+            <h2>
+              {subject || "All subjects"} · {rows.length}
+              {rows.length === RESULT_LIMIT ? "+" : ""} section{rows.length === 1 ? "" : "s"}
+            </h2>
+            <SortSelect current={sort} />
+          </header>
+
+          {error && <p className="bc-muted" style={{ color: "var(--cap-conflict-text, #b91c1c)" }}>{error.message}</p>}
+
+          {rows.length === 0 ? (
+            <p className="bc-muted">No sections match these filters. Remove a filter or pick another term.</p>
+          ) : (
+            rows.map((s) => <SectionRow key={s.ccn} s={s} />)
+          )}
+        </Glass>
+
+        <Glass as="aside" className="bc-panel">
+          <h4 className="bc-h4">About</h4>
+          <p className="bc-muted">Pick a section to see grade history, prereqs, watch options, and instructor pages.</p>
+        </Glass>
+      </div>
+    </main>
   );
 }
 
-function SectionCard({ s }: { s: Section }) {
+function SectionRow({ s }: { s: Section }) {
   const courseLine = [s.course_code, s.section_type, s.section_number].filter(Boolean).join(" ");
   const meta = [
-    s.meeting_days,
-    s.meeting_time,
+    s.instructors ?? "Staff",
+    [s.meeting_days, s.meeting_time].filter(Boolean).join(" "),
     s.location,
     s.units ? `${s.units} units` : null,
-    s.instruction_mode,
-  ].filter(Boolean) as string[];
+    `CCN ${s.ccn}`,
+  ].filter(Boolean).join(" · ");
+
   return (
-    <Link href={`/class/${s.ccn}`} style={{ textDecoration: "none", color: "inherit" }}>
-      <GlassCard
-        interactive
-        elevation={1}
-        radius="md"
-        tint={subjectAccent(s.subject_name)}
-        padding="1.05rem 1.25rem"
-      >
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "1rem" }}>
-          <div style={{ minWidth: 0 }}>
-            <p
-              style={{
-                margin: "0 0 0.3rem",
-                ...mono,
-                fontSize: "0.75rem",
-                color: "var(--glass-text-faint)",
-              }}
-            >
-              CCN {s.ccn} · {s.subject_name ?? "—"}
-            </p>
-            <h3 style={{ margin: 0, ...display("1.15rem"), color: "var(--glass-text)" }}>{courseLine}</h3>
-            <p
-              style={{
-                margin: "0.15rem 0 0",
-                fontFamily: "var(--font-text)",
-                color: "var(--glass-text)",
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-              }}
-            >
-              {s.title}
-            </p>
-            <p
-              style={{
-                margin: "0.3rem 0 0",
-                fontFamily: "var(--font-text)",
-                fontSize: "0.875rem",
-                color: "var(--glass-text-faint)",
-              }}
-            >
-              {s.instructors ?? "Staff"}
-            </p>
-            <div
-              style={{
-                display: "flex",
-                flexWrap: "wrap",
-                gap: "0.3rem 1rem",
-                marginTop: "0.6rem",
-                fontSize: "0.875rem",
-                color: "var(--glass-text-muted)",
-                fontFamily: "var(--font-text)",
-              }}
-            >
-              {meta.map((m, j) => (
-                <span key={j} style={j > 1 ? { color: "var(--glass-text-faint)" } : undefined}>
-                  {m}
-                </span>
-              ))}
-            </div>
-          </div>
-          <SeatCapsule seats={s.open_seats ?? 0} />
-        </div>
-      </GlassCard>
-    </Link>
+    <article className="bc-row">
+      <Link href={`/class/${s.ccn}`}>
+        <div className="bc-row-code">{courseLine}{s.title ? ` — ${s.title}` : ""}</div>
+        <div className="bc-row-meta">{meta}</div>
+      </Link>
+      <SeatPill open={s.open_seats ?? 0} />
+      <StarButton initial={false} label={`Save ${courseLine}`} />
+    </article>
   );
 }

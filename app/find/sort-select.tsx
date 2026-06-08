@@ -5,9 +5,9 @@ import { useTransition } from "react";
 import { GlassSelect } from "@/components/glass";
 
 const OPTIONS: Array<{ value: string; label: string }> = [
-  { value: "course_code_asc", label: "Course code · A→Z" },
-  { value: "course_code_desc", label: "Course code · Z→A" },
-  { value: "open_seats_desc", label: "Open seats · high→low" },
+  { value: "course_code_asc", label: "Course · A→Z" },
+  { value: "course_code_desc", label: "Course · Z→A" },
+  { value: "open_seats_desc", label: "Open seats" },
   { value: "title_asc", label: "Title · A→Z" },
 ];
 
@@ -24,26 +24,11 @@ export default function SortSelect({ current }: { current: string }) {
   }
 
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
-      <span
-        style={{
-          fontFamily: "var(--font-text)",
-          fontSize: "0.8125rem",
-          color: "var(--glass-text-faint)",
-          whiteSpace: "nowrap",
-        }}
-      >
-        Sort
-      </span>
-      <GlassSelect
-        value={current}
-        onChange={(e) => update(e.target.value)}
-        style={{ width: "auto", padding: "0.45rem 0.85rem", fontSize: "0.875rem" }}
-      >
+    <div className="bc-sort-row">
+      <span className="bc-sr-label">Sort</span>
+      <GlassSelect value={current} onChange={(e) => update(e.target.value)} style={{ width: "auto" }}>
         {OPTIONS.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
+          <option key={o.value} value={o.value}>{o.label}</option>
         ))}
       </GlassSelect>
     </div>
