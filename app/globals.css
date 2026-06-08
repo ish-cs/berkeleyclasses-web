@@ -213,3 +213,19 @@ html[data-reduced-motion="true"] .mesh-wash { animation: none; }
 .bc-btn--primary:hover { background: var(--tint-primary-strong); }
 
 .bc-btn--gold { color: var(--gold-text); background: var(--tint-gold); }
+
+.bc-chip {
+  position: relative; overflow: hidden;
+  padding: 5px 11px; border-radius: 999px;
+  color: var(--ink-strong); font-size: 12px; cursor: pointer;
+  background: var(--glass-fill);
+  backdrop-filter: blur(60px) saturate(220%);
+  -webkit-backdrop-filter: blur(60px) saturate(220%);
+  box-shadow: inset 0 1px 0 var(--glass-highlight), inset 0 0 0 0.5px var(--glass-border);
+  font-family: inherit; font-weight: 500; border: 0;
+  transition: background var(--motion-hover);
+}
+.bc-chip:hover { background: var(--glass-fill-strong); }
+.bc-chip:focus-visible { outline: 2px solid var(--berkeley-blue); outline-offset: 2px; }
+.bc-chip--on { color: var(--primary-text); background: var(--tint-primary); }
+.bc-chip--gold.bc-chip--on { color: var(--gold-text); background: var(--tint-gold); }
