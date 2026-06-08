@@ -6,13 +6,19 @@ const STORAGE_KEY = "bc-theme";
 
 function resolveInitial(): Theme {
   if (typeof window === "undefined") return "light";
+  const attr = document.documentElement.getAttribute("data-theme");
+  if (attr === "light" || attr === "dark") return attr;
   const saved = window.localStorage.getItem(STORAGE_KEY);
   if (saved === "light" || saved === "dark") return saved;
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
 export function useTheme() {
-  const [theme, setTheme] = useState<Theme>(resolveInitial);
+  const [theme, setTheme] = useState<Theme>("light");
+
+  useEffect(() => {
+    setTheme(resolveInitial());
+  }, []);
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
