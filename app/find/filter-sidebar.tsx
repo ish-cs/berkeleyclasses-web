@@ -115,35 +115,28 @@ export default function FilterSidebar({
   const activeCount = countActive(current);
 
   return (
-    <Glass as="aside" className="bc-filters" style={{ opacity: isPending ? 0.7 : 1, transition: "opacity var(--dur) var(--spring-soft)" }}>
+    <Glass
+      as="aside"
+      className={`bc-filters${open ? " bc-filters--open" : " bc-filters--closed"}`}
+      style={{ opacity: isPending ? 0.7 : 1, transition: "opacity var(--dur) var(--spring-soft)" }}
+    >
       {/* Header row */}
-      <div className="bc-filters-group" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 0 }}>
+      <div className="bc-filters-header">
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          style={{
-            display: "flex", alignItems: "center", gap: "0.5rem",
-            background: "transparent", border: "none",
-            color: "var(--ink)", fontFamily: "inherit",
-            fontSize: "13px", fontWeight: 600, cursor: "pointer", padding: 0,
-          }}
           aria-expanded={open}
+          className="bc-filters-toggle"
         >
-          <span>Filters</span>
+          Filters
           {activeCount > 0 && (
-            <span style={{
-              background: "var(--glass-fill-strong)", color: "var(--ink)",
-              fontSize: "10px", padding: "1px 6px", borderRadius: "9999px",
-              border: "0.5px solid var(--glass-border)",
-            }}>
-              {activeCount}
-            </span>
+            <span className="bc-filters-count">{activeCount}</span>
           )}
         </button>
         <button type="button" onClick={resetAll} className="bc-filters-reset">Reset</button>
       </div>
 
-      <div className={`bc-filter-body${open ? " bc-filter-body--open" : ""}`}>
+      <div className="bc-filters-body">
         {/* Search */}
         <div className="bc-filters-group">
           <h4 className="bc-h4">Search</h4>
@@ -294,7 +287,7 @@ export default function FilterSidebar({
             onChange={(e) => setInstructorLocal(e.target.value)}
           />
         </div>
-      </div>
+      </div>{/* bc-filters-body */}
     </Glass>
   );
 }
