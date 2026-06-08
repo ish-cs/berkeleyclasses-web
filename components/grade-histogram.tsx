@@ -21,44 +21,50 @@ export default function GradeHistogram({
 }) {
   const byLetter = new Map(distribution.map((d) => [d.letter, d]));
   const ordered = ORDER.map((l) => byLetter.get(l)).filter(Boolean) as GradeDistEntry[];
+
+  if (ordered.length === 0) {
+    return <div className="bc-histogram-empty">No grade history.</div>;
+  }
+
   const max = Math.max(...ordered.map((d) => d.percentage), 0.0001);
+  const peakIdx = ordered.findIndex((d) => d.percentage === max);
 
   return (
-    <div className="rounded-lg border border-zinc-900 p-5">
-      <div className="flex items-baseline justify-between mb-4 gap-4 flex-wrap">
-        <h2 className="text-lg font-semibold">Grade distribution</h2>
-        <div className="flex items-baseline gap-4 text-sm">
+    <>
+      {(average !== null || (sampleSize !== null && sampleSize > 0)) && (
+        <div style={{ display: "flex", gap: 12, fontSize: 12, color: "var(--muted)", marginBottom: 8, flexWrap: "wrap" }}>
           {average !== null && (
             <span>
-              <span className="text-zinc-500">Avg GPA </span>
-              <span className="font-mono font-semibold">{average.toFixed(2)}</span>
+              Avg GPA{" "}
+              <strong style={{ color: "var(--ink-strong)", fontVariantNumeric: "tabular-nums" }}>
+                {average.toFixed(2)}
+              </strong>
             </span>
           )}
           {sampleSize !== null && sampleSize > 0 && (
-            <span className="text-zinc-500">{sampleSize.toLocaleString()} grades</span>
+            <span>{sampleSize.toLocaleString()} grades</span>
           )}
         </div>
+      )}
+      <div className="bc-histogram">
+        {ordered.map((d, i) => (
+          <div
+            key={d.letter}
+            className={[
+              "bc-histogram-bar",
+              i === peakIdx ? "bc-histogram-bar--peak" : null,
+            ].filter(Boolean).join(" ")}
+            style={{ height: `${(d.percentage / max) * 100}%` }}
+            title={`${d.letter}: ${(d.percentage * 100).toFixed(1)}% (${d.count})`}
+          />
+        ))}
       </div>
-      <div className="space-y-1.5">
-        {ordered.map((d) => {
-          const pct = d.percentage * 100;
-          const widthPct = (d.percentage / max) * 100;
-          return (
-            <div key={d.letter} className="flex items-center gap-2 text-xs">
-              <span className="w-8 text-zinc-400 font-mono">{d.letter}</span>
-              <div className="flex-1 h-4 bg-zinc-900 rounded overflow-hidden">
-                <div
-                  className="h-full bg-zinc-100"
-                  style={{ width: `${widthPct.toFixed(2)}%` }}
-                />
-              </div>
-              <span className="w-12 text-right text-zinc-500 font-mono">{pct.toFixed(1)}%</span>
-              <span className="w-12 text-right text-zinc-600 font-mono hidden sm:inline">{d.count}</span>
-            </div>
-          );
-        })}
+      <div className="bc-histogram-labels">
+        {ordered.map((d) => <span key={d.letter}>{d.letter}</span>)}
       </div>
-      <p className="text-[11px] text-zinc-600 mt-4">Source: Berkeleytime · aggregated across all terms / instructors.</p>
-    </div>
+      <p style={{ fontSize: 10, color: "var(--muted)", marginTop: 8 }}>
+        Source: Berkeleytime · aggregated across all terms / instructors.
+      </p>
+    </>
   );
 }
