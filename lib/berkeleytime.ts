@@ -35,7 +35,10 @@ export async function fetchEnrollmentHistory(opts: {
   semester: "Fall" | "Spring" | "Summer" | "Winter";
 }): Promise<SectionSnapshot[] | null> {
   const parsed = parseCourseCode(opts.courseCode);
-  if (!parsed) return null;
+  if (!parsed) {
+    console.warn("[bt] parseCourseCode failed for", opts.courseCode);
+    return null;
+  }
   try {
     const res = await fetch(BT_GRAPHQL, {
       method: "POST",
@@ -50,12 +53,22 @@ export async function fetchEnrollmentHistory(opts: {
           sectionNumber: opts.sectionNumber,
         },
       }),
-      next: { revalidate: 3600 },
+      cache: "no-store",
     });
-    if (!res.ok) return null;
-    const body = (await res.json()) as BtResponse;
+    if (!res.ok) {
+      console.warn("[bt] http fail", res.status, await res.text().catch(() => ""));
+      return null;
+    }
+    const body = (await res.json()) as BtResponse & { errors?: Array<{ message: string }> };
+    if (body.errors) {
+      console.warn("[bt] graphql errors", JSON.stringify(body.errors).slice(0, 400), "for", parsed, opts.sectionNumber);
+      return null;
+    }
     const history = body?.data?.enrollment?.history;
-    if (!history || history.length === 0) return null;
+    if (!history || history.length === 0) {
+      console.info("[bt] no history for", parsed, opts.sectionNumber, opts.year, opts.semester);
+      return null;
+    }
     return history.map((h) => ({
       ccn: opts.ccn,
       taken_at: Math.floor(new Date(h.startTime).getTime() / 1000),
@@ -64,7 +77,8 @@ export async function fetchEnrollmentHistory(opts: {
       waitlisted: h.waitlistedCount,
       capacity: h.maxEnroll,
     }));
-  } catch {
+  } catch (e) {
+    console.error("[bt] fetch threw", String(e));
     return null;
   }
 }
