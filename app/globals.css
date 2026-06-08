@@ -254,3 +254,18 @@ html[data-reduced-motion="true"] .mesh-wash { animation: none; }
 [data-theme="dark"] .bc-seats-led { box-shadow: 0 0 6px rgba(110,168,255,0.6); }
 .bc-seats--full { color: var(--muted); }
 .bc-seats--full .bc-seats-led { background: var(--muted); box-shadow: none; }
+
+.bc-star {
+  position: relative; overflow: hidden;
+  width: 24px; height: 24px; border-radius: 50%;
+  background: var(--glass-fill);
+  backdrop-filter: blur(60px) saturate(220%);
+  -webkit-backdrop-filter: blur(60px) saturate(220%);
+  color: var(--muted); font-size: 12px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: inset 0 1px 0 var(--glass-highlight), inset 0 0 0 0.5px var(--glass-border);
+  border: 0;
+}
+.bc-star-glyph { position: relative; z-index: 1; }
+.bc-star:focus-visible { outline: 2px solid var(--berkeley-blue); outline-offset: 2px; }
+.bc-star--on { background: var(--tint-gold); color: var(--gold-text); }
