@@ -7,7 +7,6 @@ import GradeHistogram from "@/components/grade-histogram";
 import WaitlistTrend from "@/components/waitlist-trend";
 import { SaveSectionButton } from "@/components/save-section-button";
 import { extractPrereqs } from "@/lib/prereqs";
-import { fetchEnrollmentHistory, termNameToYearSemester } from "@/lib/berkeleytime";
 import type { CourseMeta, Section, SectionSnapshot } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -38,7 +37,7 @@ export default async function ClassPage({
   }
   const s = section as Section;
 
-  const [{ data: siblings }, { data: metaRow }, { data: snapshotRows }, { data: termRow }] = await Promise.all([
+  const [{ data: siblings }, { data: metaRow }, { data: snapshotRows }] = await Promise.all([
     supabase
       .from("sections")
       .select("ccn, section_type, section_number, instructors, meeting_days, meeting_time, open_seats")
@@ -55,26 +54,10 @@ export default async function ClassPage({
       .select("ccn, taken_at, open_seats, enrolled, waitlisted, capacity")
       .eq("ccn", ccnNum)
       .order("taken_at", { ascending: true })
-      .limit(200),
-    supabase.from("terms").select("name").eq("term_id", s.term_id ?? "").maybeSingle(),
+      .limit(500),
   ]);
   const meta = (metaRow ?? null) as CourseMeta | null;
-  const localSnapshots = (snapshotRows ?? []) as SectionSnapshot[];
-
-  // Prefer Berkeleytime's months-of-history; fall back to our own snapshots if BT lookup fails
-  const termName = (termRow as { name?: string } | null)?.name ?? "Fall 2026";
-  const ys = termNameToYearSemester(termName);
-  let snapshots: SectionSnapshot[] = localSnapshots;
-  if (ys && s.course_code && s.section_number) {
-    const bt = await fetchEnrollmentHistory({
-      courseCode: s.course_code,
-      sectionNumber: s.section_number,
-      ccn: ccnNum,
-      year: ys.year,
-      semester: ys.semester,
-    });
-    if (bt && bt.length > 0) snapshots = bt;
-  }
+  const snapshots = (snapshotRows ?? []) as SectionSnapshot[];
   const prereqs = extractPrereqs({
     metaText: meta?.prereq_text,
     requiredCourses: meta?.required_courses,
